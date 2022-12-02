@@ -206,7 +206,7 @@ Please select an option: """
                 days=REINSTATEMENT_DAYS
             )
         else:
-            remaining = (issued_book['issued until'] - str_to_date()).days
+            remaining = (issued_book["issued until"] - str_to_date()).days
             print(
                 f"Book {book['name']} (#{book_id}) is already issued to {member['name']} (#{member_id}) for {remaining} more days"
             )
