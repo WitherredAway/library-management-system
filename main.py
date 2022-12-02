@@ -112,7 +112,6 @@ Please select an option (1-8): """
     if not 1 <= option <= 8:
         print("Selected option is out of range")
         continue
-
     # If selected option is 1: View Member Details
     if option == 1:
         member_id, member = input_member()
@@ -126,7 +125,6 @@ Please select an option (1-8): """
             member["issued books"].extend(member_issued_books.keys())
 
         print(format_dict(member))
-
     # If selected option is 2: View Book Details
     elif option == 2:
         book_id, book = input_book()
@@ -134,13 +132,11 @@ Please select an option (1-8): """
             print(f"Book with ID {book_id} does not exist.")
             continue
         print(format_dict(book))
-
     # If selected option is 3: View inventory
     elif option == 3:
         print(
             "Books currently in inventory:\n" + format_books_dict(books, indent="    ")
         )
-
     # If selected option is 4: View Issued Books
     elif option == 4:
         member_id, member = input_member()
@@ -158,11 +154,11 @@ Please select an option (1-8): """
         for book_id, issue in issues.items():
             today = str_to_date()
             issued_until = issue["issued until"]
-            # If today is greateer than expiry date aka expiry date has passed
+            # If today is greater than expiry date aka expiry date has passed
             if today > issued_until:
                 # Update fine amount based on fine per day
-                issues[book_id]["fine amount"] = (today - issued_until).days * FINE_PER_DAY  # type: ignore
-            # Else, if there is fine amount assigned but they are no longer eligible for a fine, remove it
+                issues[book_id]["fine amount"] = (today - issued_until).days * FINE_PER_DAY
+            # Else, if there is fine amount assigned but they're no longer eligible for it, remove it
             elif "fine amount" in issues[book_id]:
                 del issues[book_id]["fine amount"]
 
@@ -172,7 +168,6 @@ Please select an option (1-8): """
             f"Books issued to {members[member_id]['name']} (#{member_id}):\n"
             + "".join(msg),
         )
-
     # If selected option is 5: Add a member
     elif option == 5:
         name = input("Please input name of the member: ").title()
@@ -184,7 +179,6 @@ Please select an option (1-8): """
             "issued books": [],
         }
         print(f"Added new member {name} (#{member_id})")
-
     # If selected option is 6: Add a book
     elif option == 6:
         name = input("Please input name of the book: ")
@@ -198,7 +192,6 @@ Please select an option (1-8): """
             "published year": year,
         }
         print(f"Added new book {name} (#{book_id})")
-
     # If selected option is 7: Issue a book
     elif option == 7:
         member_id, member = input_member()
@@ -236,7 +229,7 @@ Please select an option (1-8): """
                 issued_book["issued until"] - str_to_date()
             ).days  # Difference (in days) between expiration date and today
             print(
-                # This string is split into two halves to reduce no. of characters in the line
+                # This string is split into two halves to reduce the no. of characters in the line
                 (
                     f"Book {book['name']} (#{book_id}) is already issued"
                     f"to {member['name']} (#{member_id}) for {remaining} more days"
@@ -253,8 +246,12 @@ Please select an option (1-8): """
                 "issued until"
             ] + datetime.timedelta(days=REINSTATEMENT_DAYS)
         print(
-            f"Issued book {book['name']} (#{book_id}) to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
+            # This string is split into two halves to reduce the no. of characters in the line
+            (
+                f"Issued book {book['name']} (#{book_id})"
+                f"to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
+            )
         )
-
+    # If selected option is 8: Exit, break out of the loop
     elif option == 8:
         break
