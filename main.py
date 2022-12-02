@@ -227,7 +227,7 @@ Please select an option (1-8): """
         elif issued_book["issued until"] < str_to_date():
             renew = input("Renew issuance? y/N: ")
             if renew not in "yY":
-                print("Aborted.")
+                print("Aborted")
                 continue
             issued_book["issued date"] = str_to_date()
             issued_book["issued until"] = str_to_date() + datetime.timedelta(
@@ -241,9 +241,9 @@ Please select an option (1-8): """
             print(
                 f"Book {book['name']} (#{book_id}) is already issued to {member['name']} (#{member_id}) for {remaining} more days"
             )
-            renew = input("Renew issuance? y/N: ")
+            renew = input(f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: ")
             if renew not in "yY":
-                print("Aborted.")
+                print("Aborted")
                 continue
 
             issued_book["issued until"] = issued_book[
