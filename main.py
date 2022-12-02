@@ -207,6 +207,10 @@ Please select an option (1-8): """
                 + datetime.timedelta(days=REINSTATEMENT_DAYS),
             }
         elif issued_book["issued until"] < str_to_date():
+            renew = input("Renew issuance? y/N: ")
+            if renew not in "yY":
+                print("Aborted.")
+                continue
             issued_book["issued date"] = str_to_date()
             issued_book["issued until"] = str_to_date() + datetime.timedelta(
                 days=REINSTATEMENT_DAYS
