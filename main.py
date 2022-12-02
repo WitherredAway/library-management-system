@@ -239,7 +239,10 @@ Please select an option (1-8): """
                 issued_book["issued until"] - str_to_date()
             ).days  # Difference (in days) between expiration date and today
             print(
-                f"Book {book['name']} (#{book_id}) is already issued to {member['name']} (#{member_id}) for {remaining} more days"
+                (
+                    f"Book {book['name']} (#{book_id}) is already issued"
+                    f"to {member['name']} (#{member_id}) for {remaining} more days"
+                )
             )
             renew = input(
                 f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: "
