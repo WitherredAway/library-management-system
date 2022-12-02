@@ -1,7 +1,6 @@
 import datetime
 
 
-DATETIME_FORMAT = r"%d/%m/%Y"  # Constant to the format datetime objects
 FINE_PER_DAY = 10  # Fine amount per day
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
