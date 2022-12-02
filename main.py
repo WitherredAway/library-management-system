@@ -82,24 +82,29 @@ issued_books = {
 
 
 # The main loop of the program
-run = True
-while run:
-    action = int(
-        input(
-            f"""
-1. View Member Details
-2. View Book Details
-3. View Inventory
-4. View Issued Books
+while True:
+    # This try-except block catches ValueError in case a string was input
+    try:
+        action = int(
+            input(
+                f"""
+    1. View Member Details
+    2. View Book Details
+    3. View Inventory
+    4. View Issued Books
 
-5. Add Member
-6. Add Book
-7. Issue a book
+    5. Add Member
+    6. Add Book
+    7. Issue a book
 
-8. Exit
-Please select an option: """
+    8. Exit
+    Please select an option (1-8): """
+            )
         )
-    )
+    except ValueError:
+        print("Please select an integer option from 1 to 8")
+        continue
+
     print()
     if not 1 <= action <= 8:
         print("Selected option is out of range")
