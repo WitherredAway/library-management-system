@@ -1,2 +1,2 @@
 # library-management-system
-CBSE Class 11 Library Management System Project
+CBSE Class 11 Library Management System Computer Science Project done as simply as possible for beginners, using Lists and Dictionaries.
