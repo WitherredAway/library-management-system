@@ -1,7 +1,7 @@
 import datetime
 
 
-FINE_PER_DAY = 10  # Fine amount per day
+FINE_PER_DAY = 10  # Fine amount per day is rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
 
@@ -20,7 +20,7 @@ def str_to_date(date_str=None):
 def format_dict(dictionary, *, indent=""):
     """Function to nicely format the keys and values of a dictionary"""
 
-    # This is a list comprehension; creating a list using for loop directly within the brackets
+    # This list comprehension is used to format each key and value of the dictionary
     return "\n".join(
         [
             f"{indent}{key.title() if isinstance(key, str) else key}: {value}"
@@ -32,6 +32,7 @@ def format_dict(dictionary, *, indent=""):
 def format_books_dict(book_dict, *, indent=""):
     """Function to nicely format a book dictionary"""
 
+    # This list comprehension is used to format each key and value of the book dictionary
     return "\n\n".join(
         [
             f"{indent}ID: {book_id}\n{format_dict(book, indent=indent)}"
@@ -41,7 +42,7 @@ def format_books_dict(book_dict, *, indent=""):
 
 
 def input_member():
-    """Function to get member from member ID"""
+    """Function to get member from member ID input"""
 
     member_id = int(input("Please input the member's ID: "))
     print()
@@ -50,7 +51,7 @@ def input_member():
 
 
 def input_book():
-    """Function to get book from book ID"""
+    """Function to get book from book ID input"""
 
     book_id = int(input("Please input the book's ID: "))
     print()
@@ -58,7 +59,7 @@ def input_book():
     return book_id, book
 
 
-# All the data
+# The main data
 members = {1: {"name": "Souvic Das", "member since": str_to_date(), "issued books": []}}
 books = {
     1: {
@@ -69,7 +70,7 @@ books = {
 }
 
 # Dictionary of issued books. It is a dictionary whose
-# each key is a member ID and value is a dictionary
+# each key is a member ID and value is a dictionary whose
 # each key is a book ID and value is the issue details
 issued_books = {
     1: {
@@ -93,8 +94,8 @@ while True:
 3. View Inventory
 4. View Issued Books
 
-5. Add Member
-6. Add Book
+5. Add a Member
+6. Add a Book
 7. Issue a book
 
 8. Exit
@@ -106,11 +107,14 @@ Please select an option (1-8): """
         continue
 
     print()
-    if not 1 <= action <= 8:
+
+    # If selected action is not within list of options
+    if not 1 <= option <= 8:
         print("Selected option is out of range")
         continue
 
-    if action == 1:
+    # If selected option is 1: View Member Details
+    if option == 1:
         member_id, member = input_member()
         if member is None:
             print(f"Member with ID {member_id} does not exist.")
@@ -118,11 +122,13 @@ Please select an option (1-8): """
 
         member_issued_books = issued_books.get(member_id)
         if member_issued_books is not None:
+            # Update list of issued book IDs of the member
             member["issued books"].extend(member_issued_books.keys())
 
         print(format_dict(member))
 
-    elif action == 2:
+    # If selected option is 2: View Book Details
+    elif option == 2:
         book_id, book = input_book()
         if book is None:
             print(f"Book with ID {book_id} does not exist.")
@@ -130,12 +136,14 @@ Please select an option (1-8): """
 
         print(format_dict(book))
 
-    elif action == 3:
+    # If selected option is 3: View inventory
+    elif option == 3:
         print(
             "Books currently in inventory:\n" + format_books_dict(books, indent="    ")
         )
 
-    elif action == 4:
+    # If selected option is 4: View Issued Books
+    elif option == 4:
         member_id, member = input_member()
         if member is None:
             print(f"Member with ID {member_id} does not exist.")
@@ -143,14 +151,20 @@ Please select an option (1-8): """
 
         issues = issued_books.get(member_id)
         if issues is None or len(issues) == 0:
-            print(f"Member {member['name']} (#{member_id}) does not have any issued books.")
+            print(
+                f"Member {member['name']} (#{member_id}) does not have any issued books."
+            )
             continue
 
         for book_id, issue in issues.items():
             today = str_to_date()
             issued_until = issue["issued until"]
+            # If today is greateer than expiry date aka expiry date has passed
             if today > issued_until:
+                # Update fine amount based on fine per day
                 issues[book_id]["fine amount"] = (today - issued_until).days * FINE_PER_DAY  # type: ignore
+
+            # Else, if there is fine amount assigned but they are no longer eligible for a fine, remove it
             elif "fine amount" in issues[book_id]:
                 del issues[book_id]["fine amount"]
 
@@ -161,9 +175,10 @@ Please select an option (1-8): """
             + "".join(msg),
         )
 
-    elif action == 5:
+    # If selected option is 5: Add a member
+    elif option == 5:
         name = input("Please input name of the member: ").title()
-        member_id = max(members.keys()) + 1
+        member_id = max(members.keys()) + 1  # Determine next member ID
 
         members[member_id] = {
             "name": name,
@@ -172,11 +187,12 @@ Please select an option (1-8): """
         }
         print(f"Added new member {name} (#{member_id})")
 
-    elif action == 6:
+    # If selected option is 6: Add a book
+    elif option == 6:
         name = input("Please input name of the book: ")
         author = input("Please input author of the book: ").title()
         year = int(input("Please input publication year of the book: "))
-        book_id = max(books.keys()) + 1
+        book_id = max(books.keys()) + 1  # Determine next book ID
 
         books[book_id] = {
             "name": name,
@@ -185,7 +201,8 @@ Please select an option (1-8): """
         }
         print(f"Added new book {name} (#{book_id})")
 
-    elif action == 7:
+    # If selected option is 7: Issue a book
+    elif option == 7:
         member_id, member = input_member()
         if member is None:
             print(f"Member with ID {member_id} does not exist.")
@@ -206,6 +223,7 @@ Please select an option (1-8): """
                 "issued until": str_to_date()
                 + datetime.timedelta(days=REINSTATEMENT_DAYS),
             }
+        # If expiry date is less than today; issue has expired
         elif issued_book["issued until"] < str_to_date():
             renew = input("Renew issuance? y/N: ")
             if renew not in "yY":
@@ -215,8 +233,11 @@ Please select an option (1-8): """
             issued_book["issued until"] = str_to_date() + datetime.timedelta(
                 days=REINSTATEMENT_DAYS
             )
+        # Else, i.e. when expiry date is larger than today; issue hasn't expired yet
         else:
-            remaining = (issued_book["issued until"] - str_to_date()).days
+            remaining = (
+                issued_book["issued until"] - str_to_date()
+            ).days  # Difference (in days) between expiration date and today
             print(
                 f"Book {book['name']} (#{book_id}) is already issued to {member['name']} (#{member_id}) for {remaining} more days"
             )
@@ -233,5 +254,5 @@ Please select an option (1-8): """
             f"Issued book {book['name']} (#{book_id}) to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
         )
 
-    elif action == 8:
+    elif option == 8:
         break
