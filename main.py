@@ -206,18 +206,21 @@ Please select an option: """
                 days=REINSTATEMENT_DAYS
             )
         else:
+            remaining = (issued_book['issued until'] - str_to_date()).days
             print(
-                f"Book #{book_id} has already been issued to member #{member_id} for {(issued_book['issued until'] - str_to_date()).days} more days"
+                f"Book #{book_id} is already issued to member #{member_id} for {remaining} more days"
             )
             renew = input("Renew issuance? y/N: ")
-            if renew not in "yYnN":
+            if renew not in "yY":
+                print("Aborted.")
                 continue
+
             issued_book["issued until"] = issued_book[
                 "issued until"
             ] + datetime.timedelta(days=REINSTATEMENT_DAYS)
 
         print(
-            f"Issued book #{book_id} to member #{member_id} for {REINSTATEMENT_DAYS} days"
+            f"Issued book #{book_id} to member #{member_id} for + {REINSTATEMENT_DAYS} days"
         )
 
     elif action == 8:
