@@ -127,7 +127,9 @@ Please select an option: """
         print(format_dict(book))
 
     elif action == 3:
-        print("Books currently in inventory:\n" + format_books_dict(books, indent="    "))
+        print(
+            "Books currently in inventory:\n" + format_books_dict(books, indent="    ")
+        )
 
     elif action == 4:
         member_id, member = input_member()
@@ -150,7 +152,8 @@ Please select an option: """
         msg = format_books_dict(issues, indent="    ")
 
         print(
-            f"Books issued to {members[member_id]['name']} (#{member_id}):\n" + "".join(msg),
+            f"Books issued to {members[member_id]['name']} (#{member_id}):\n"
+            + "".join(msg),
         )
 
     elif action == 5:
@@ -195,19 +198,28 @@ Please select an option: """
         if issued_book is None:
             issued_books[member_id][book_id] = {
                 "issued date": str_to_date(),
-                "issued until": str_to_date() + datetime.timedelta(days=REINSTATEMENT_DAYS),
+                "issued until": str_to_date()
+                + datetime.timedelta(days=REINSTATEMENT_DAYS),
             }
         elif issued_book["issued until"] < str_to_date():
             issued_book["issued date"] = str_to_date()
-            issued_book["issued until"] = str_to_date() + datetime.timedelta(days=REINSTATEMENT_DAYS)
+            issued_book["issued until"] = str_to_date() + datetime.timedelta(
+                days=REINSTATEMENT_DAYS
+            )
         else:
-            print(f"Book #{book_id} has already been issued to member #{member_id} for {(issued_book['issued until'] - str_to_date()).days} more days")
+            print(
+                f"Book #{book_id} has already been issued to member #{member_id} for {(issued_book['issued until'] - str_to_date()).days} more days"
+            )
             renew = input("Renew issuance? y/N: ")
             if renew not in "yYnN":
                 continue
-            issued_book["issued until"] = issued_book["issued until"] + datetime.timedelta(days=REINSTATEMENT_DAYS)
+            issued_book["issued until"] = issued_book[
+                "issued until"
+            ] + datetime.timedelta(days=REINSTATEMENT_DAYS)
 
-        print(f"Issued book #{book_id} to member #{member_id} for {REINSTATEMENT_DAYS} days")
+        print(
+            f"Issued book #{book_id} to member #{member_id} for {REINSTATEMENT_DAYS} days"
+        )
 
     elif action == 8:
         break
