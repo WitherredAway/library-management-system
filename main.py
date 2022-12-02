@@ -75,8 +75,8 @@ books = {
 issued_books = {
     1: {
         1: {
-            "issued date": str_to_date("01/10/2022"),
-            "issued until": str_to_date("01/11/2022"),
+            "issued date": str_to_date("01/11/2022"),
+            "issued until": str_to_date("01/12/2022"),
         }
     }
 }
