@@ -96,7 +96,7 @@ while True:
 
 5. Add a Member
 6. Add a Book
-7. Issue a book
+7. Issue a Book
 
 8. Exit
 Please select an option (1-8): """
@@ -241,7 +241,9 @@ Please select an option (1-8): """
             print(
                 f"Book {book['name']} (#{book_id}) is already issued to {member['name']} (#{member_id}) for {remaining} more days"
             )
-            renew = input(f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: ")
+            renew = input(
+                f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: "
+            )
             if renew not in "yY":
                 print("Aborted")
                 continue
