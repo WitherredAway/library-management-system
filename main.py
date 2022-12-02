@@ -208,7 +208,7 @@ Please select an option: """
         else:
             remaining = (issued_book['issued until'] - str_to_date()).days
             print(
-                f"Book #{book_id} is already issued to member #{member_id} for {remaining} more days"
+                f"Book {book['name']} (#{book_id}) is already issued to {member['name']} (#{member_id}) for {remaining} more days"
             )
             renew = input("Renew issuance? y/N: ")
             if renew not in "yY":
@@ -220,7 +220,7 @@ Please select an option: """
             ] + datetime.timedelta(days=REINSTATEMENT_DAYS)
 
         print(
-            f"Issued book #{book_id} to member #{member_id} for + {REINSTATEMENT_DAYS} days"
+            f"Issued book {book['name']} (#{book_id}) to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
         )
 
     elif action == 8:
