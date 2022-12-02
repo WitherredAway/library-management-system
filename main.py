@@ -85,7 +85,7 @@ issued_books = {
 while True:
     # This try-except block catches ValueError in case a string was input
     try:
-        action = int(
+        option = int(
             input(
                 f"""
 1. View Member Details
@@ -143,8 +143,9 @@ Please select an option (1-8): """
 
         issues = issued_books.get(member_id)
         if issues is None or len(issues) == 0:
-            print(f"Member with #{member_id} does not have any issued books.")
+            print(f"Member {member['name']} (#{member_id}) does not have any issued books.")
             continue
+
         for book_id, issue in issues.items():
             today = str_to_date()
             issued_until = issue["issued until"]
