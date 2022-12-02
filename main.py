@@ -88,17 +88,17 @@ while True:
         action = int(
             input(
                 f"""
-    1. View Member Details
-    2. View Book Details
-    3. View Inventory
-    4. View Issued Books
+1. View Member Details
+2. View Book Details
+3. View Inventory
+4. View Issued Books
 
-    5. Add Member
-    6. Add Book
-    7. Issue a book
+5. Add Member
+6. Add Book
+7. Issue a book
 
-    8. Exit
-    Please select an option (1-8): """
+8. Exit
+Please select an option (1-8): """
             )
         )
     except ValueError:
