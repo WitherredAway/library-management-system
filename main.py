@@ -239,6 +239,7 @@ Please select an option (1-8): """
                 issued_book["issued until"] - str_to_date()
             ).days  # Difference (in days) between expiration date and today
             print(
+                # This string is split into two halves to reduce no. of characters in the line
                 (
                     f"Book {book['name']} (#{book_id}) is already issued"
                     f"to {member['name']} (#{member_id}) for {remaining} more days"
