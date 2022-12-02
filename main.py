@@ -133,7 +133,6 @@ Please select an option (1-8): """
         if book is None:
             print(f"Book with ID {book_id} does not exist.")
             continue
-
         print(format_dict(book))
 
     # If selected option is 3: View inventory
@@ -163,7 +162,6 @@ Please select an option (1-8): """
             if today > issued_until:
                 # Update fine amount based on fine per day
                 issues[book_id]["fine amount"] = (today - issued_until).days * FINE_PER_DAY  # type: ignore
-
             # Else, if there is fine amount assigned but they are no longer eligible for a fine, remove it
             elif "fine amount" in issues[book_id]:
                 del issues[book_id]["fine amount"]
@@ -215,7 +213,6 @@ Please select an option (1-8): """
 
         if issued_books.get(member_id) is None:
             issued_books[member_id] = {}
-
         issued_book = issued_books[member_id].get(book_id)
         if issued_book is None:
             issued_books[member_id][book_id] = {
@@ -255,7 +252,6 @@ Please select an option (1-8): """
             issued_book["issued until"] = issued_book[
                 "issued until"
             ] + datetime.timedelta(days=REINSTATEMENT_DAYS)
-
         print(
             f"Issued book {book['name']} (#{book_id}) to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
         )
