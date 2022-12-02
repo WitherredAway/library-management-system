@@ -167,7 +167,7 @@ Please select an option: """
         print(f"Added new member {name} (#{member_id})")
 
     elif action == 6:
-        name = input("Please input name of the book: ").capitalize()
+        name = input("Please input name of the book: ")
         author = input("Please input author of the book: ").title()
         year = int(input("Please input publication year of the book: "))
         book_id = max(books.keys()) + 1
