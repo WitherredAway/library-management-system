@@ -1,7 +1,7 @@
 import datetime
 
 
-FINE_PER_DAY = 10  # Fine amount per day is rupees
+FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
 
