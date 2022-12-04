@@ -232,7 +232,7 @@ Please select an option (1-8): """
                 # This string is split into two halves to reduce the no. of characters in the line
                 (
                     f"Book {book['name']} (#{book_id}) is already issued"
-                    f"to {member['name']} (#{member_id}) for {remaining} more days"
+                    f" to {member['name']} (#{member_id}) for {remaining} more days"
                 )
             )
             renew = input(
@@ -249,7 +249,7 @@ Please select an option (1-8): """
             # This string is split into two halves to reduce the no. of characters in the line
             (
                 f"Issued book {book['name']} (#{book_id})"
-                f"to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
+                f" to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
             )
         )
     # If selected option is 8: Exit, break out of the loop
