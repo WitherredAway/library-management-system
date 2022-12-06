@@ -1,5 +1,9 @@
 # Library Management System
-CBSE Class 11 Library Management System Computer Science Project done as simply as possible for beginners, using Lists and Dictionaries.
+CBSE Class 11 Library Management System Computer Science Project done as simply as possible for beginners, using Dictionaries.
+
+Feel free to use this program, but instead of just blindly copy-pasting it, please try to understand what is happening in the program before using it.
+
+Also feel free to open any issues if you have any questions. Not really accepting contributions though because this is a school project done in a very specific required way, but feel free to suggest any changes. I hope this helps :)
 
 ## Output
 ### Video demonstration of each output
