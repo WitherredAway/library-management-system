@@ -106,6 +106,7 @@ Please select an option (1-8): """
         print("Please select an integer option from 1 to 8")
         continue
 
+    # This print statement is to add an extra line after the menu
     print()
 
     # If selected action is not within list of options
