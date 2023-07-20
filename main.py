@@ -1,9 +1,51 @@
 import datetime
 
+import mysql.connector as mcon
+
 
 FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
+
+con = mcon.connect(host="localhost", user="root", passwd="root", database="library")  # Make sure to create the 'library' database
+cursor = con.cursor()
+
+# Names of the tables
+MEMBERS = "members"
+BOOKS = "books"
+ISSUED_BOOKS = "issued_books"
+
+# Initialize all the required tables
+cursor.execute(
+    f"""CREATE TABLE IF NOT EXISTS {MEMBERS} (
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        name TEXT,
+        member_since DATE
+    )"""
+)
+
+cursor.execute(
+    f"""CREATE TABLE IF NOT EXISTS {BOOKS} (
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        name TEXT,
+        author TEXT,
+        year INTEGER
+    )"""
+)
+
+cursor.execute(
+    f"""CREATE TABLE IF NOT EXISTS {ISSUED_BOOKS} (
+        issue_id INT PRIMARY KEY AUTO_INCREMENT,
+        member_id INT,
+        book_id INT,
+        issue_date DATE,
+        issue_until DATE,
+        FOREIGN KEY (member_id) REFERENCES members(id),
+        FOREIGN KEY (book_id) REFERENCES books(id)
+    )"""
+)
+
+con.commit()
 
 # All the utility functions
 def str_to_date(date_str=None):
@@ -40,13 +82,19 @@ def format_books_dict(book_dict, *, indent=""):
         ]
     )
 
-
 def input_member():
     """Function to get member from member ID input"""
 
     member_id = int(input("Please input the member's ID: "))
     print()
-    member = members.get(member_id)
+    cursor.execute(
+        (
+            """SELECT * FROM members
+            WHERE id = %s"""
+        ),
+        (member_id,)
+    )
+    member = cursor.fetchone()
     return member_id, member
 
 
@@ -57,29 +105,6 @@ def input_book():
     print()
     book = books.get(book_id)
     return book_id, book
-
-
-# The main data
-members = {1: {"name": "Souvic Das", "member since": str_to_date(), "issued books": []}}
-books = {
-    1: {
-        "name": "Sherlock Holmes Vol. 1",
-        "author": "Arthur Conan Doyle",
-        "published year": 1887,
-    }
-}
-
-# Dictionary of issued books. It is a dictionary whose
-# each key is a member ID and value is a dictionary whose
-# each key is a book ID and value is the issue details
-issued_books = {
-    1: {
-        1: {
-            "issued date": str_to_date("01/11/2022"),
-            "issued until": str_to_date("01/12/2022"),
-        }
-    }
-}
 
 
 # The main loop of the program
@@ -120,12 +145,12 @@ Please select an option (1-8): """
             print(f"Member with ID {member_id} does not exist.")
             continue
 
-        member_issued_books = issued_books.get(member_id)
-        if member_issued_books is not None:
-            # Update list of issued book IDs of the member
-            member["issued books"].extend(member_issued_books.keys())
+        # member_issued_books = issued_books.get(member_id)
+        # if member_issued_books is not None:
+        #     # Update list of issued book IDs of the member
+        #     member["issued books"].extend(member_issued_books.keys())
 
-        print(format_dict(member))
+        print(member)
     # If selected option is 2: View Book Details
     elif option == 2:
         book_id, book = input_book()
@@ -172,13 +197,16 @@ Please select an option (1-8): """
     # If selected option is 5: Add a member
     elif option == 5:
         name = input("Please input name of the member: ").title()
-        member_id = max(members.keys()) + 1  # Determine next member ID
 
-        members[member_id] = {
-            "name": name,
-            "member since": str_to_date(),
-            "issued books": [],
-        }
+        cursor.execute(
+            (
+                """INSERT INTO members (name, member_since)
+                VALUES (%s, CURDATE())"""
+            ),
+            (name,)
+        )
+        member_id = cursor.lastrowid
+        con.commit()
         print(f"Added new member {name} (#{member_id})")
     # If selected option is 6: Add a book
     elif option == 6:
@@ -255,4 +283,5 @@ Please select an option (1-8): """
         )
     # If selected option is 8: Exit, break out of the loop
     elif option == 8:
+        con.close()
         break
