@@ -114,6 +114,71 @@ def format_books(books, *, indent=""):
         ]
     )
 
+def tabulate(data):
+    """Function to nicely tabulate data
+
+    'data' has to be a list of dictionaries.
+    Each of those dictionaries need to have the same keys,
+    which will be the columns. E.g.:
+    [
+        {'id': 1, 'name': 'Souvic Das', 'member_since': datetime.date(2023, 7, 20)},
+        {'id': 2, 'name': 'Arkaprovo Das', 'member_since': datetime.date(2023, 7, 21)},
+        {'id': 3, 'name': 'Sukrit Dutta', 'member_since': datetime.date(2023, 7, 21)},
+        {'id': 4, 'name': 'Shibam Dutta', 'member_since': datetime.date(2023, 7, 21)},
+    ]
+    """
+
+    if len(data) == 0:
+        return ""
+
+    # Ensure that all rows are of the same length
+    if not all(len(d) == len(data[0]) for d in data):
+        raise ValueError("Inconsistent row lengths")
+
+    # Ensure that all rows have the same headers
+    if not all(all(data[0].get(k) is not None for k in d) for d in data):
+        raise ValueError("Inconsistent headers")
+
+    # Dictionary of each header and its largest value
+    headers = {k: max([len(str(d[k])) for d in data] + [len(k)]) for k in data[0].keys()}
+    data_list = []
+
+    # Loop through each row and put each value into a tuple
+    for row in data:
+        d = []
+        for h in headers:
+            v = row[h]
+            # If a value is a date object, turn it into string
+            if isinstance(v, datetime.date):
+                v = date(v)
+            d.append(v)
+        data_list.append(d)
+
+    # Use Format Mini Lang to create the padding for each cell
+    row_format = "| " + " | ".join(["{:<%s}" % hl for _, hl in headers.items()]) + " |"
+    # And the horizontal border
+    border = "+-" + "-+-".join([f"{'':-<{hl}}" for _, hl in headers.items()]) + "-+"
+
+    # Finally, build the table
+    table = []
+    table.append(border)
+    table.append(row_format.format(*headers))
+    table.append(border)
+    for row in data_list:
+        table.append(row_format.format(*row))
+    table.append(border)
+
+    # Example table:
+    # +----+---------------+--------------+
+    # | id | name          | member_since |
+    # +----+---------------+--------------+
+    # | 1  | Souvic Das    | 20-07-2023   |
+    # | 2  | Arkaprovo Das | 21-07-2023   |
+    # | 3  | Sukrit Dutta  | 21-07-2023   |
+    # | 4  | Shibam Dutta  | 21-07-2023   |
+    # +----+---------------+--------------+
+    return "\n".join(table)
+
 # Data fetch functions
 def get_from_table(table, _id = None):
     """Function to get details from table, optionally based on id. e.g. member details from members table"""
