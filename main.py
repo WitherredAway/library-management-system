@@ -246,22 +246,74 @@ def get_issued_books(member_id):
     return issues
 
 
-# The main loop of the program
-MENU = f"""{MBORDER}
-1. View Member Details
-2. View Book Details
-3. View Inventory
-4. View Issued Books
+# Functions for the main loop
 
-5. Add a Member
-6. Add a Book
-7. Issue a Book
+# These are for the structure of the menus
+MAIN_MENU = ("Main Menu", "main")
+EXIT = ("Exit", "exit")
+MENUS = {
+    "main": [
+        ("Members", "members"),
+        ("Books", "books"),
+        ("Issues", "issues"),
+        MAIN_MENU,
+        EXIT,
+    ],
+    "members": [
+        ("Add Member", add_member),
+        ("Search Members", search_members),
+        ("View Member Details", view_member),
+        ("Edit Member Details", edit_member),
+        ("Remove Member", remove_member),
+        MAIN_MENU,
+        EXIT,
+    ],
+    "books": [
+        ("Add Book", add_book),
+        ("Search Book", search_books),
+        ("View Book Details", view_book),
+        ("Edit Book Details", edit_book),
+        ("Remove Book", remove_book),
+        MAIN_MENU,
+        EXIT,
+    ],
+    "issues": [
+        ("Issue Book", issue_book),
+        ("View Issued Books", view_issued_books),
+        ("Edit Issue Details", edit_issue),
+        ("Un-Issue", unissue),
+        MAIN_MENU,
+        EXIT,
+    ],
+}
 
-8. Show Menu Again
-9. Exit
-{MBORDER}"""
+# This variable keeps track of which menu we're at
+_menu = "main"
+def menu():
+    """Returns current menu options"""
 
-print(MENU)
+    return MENUS[_menu]
+
+def show_current_menu():
+    """Shows current menu"""
+
+    menu = MENUS[_menu]
+    text = "\n".join(
+        [
+            f"{option} {desc}" for option, desc in menu.items()
+        ]
+    )
+    print(border(text))
+
+def set_menu(menu):
+    """Sets current menu"""
+
+    if len(menu) == 0:
+        return
+
+    global _menu
+    _menu = menu
+
 while True:
     # This try-except block catches ValueError in case a string was input
     try:
