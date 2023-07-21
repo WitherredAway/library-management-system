@@ -42,8 +42,13 @@ cursor.execute(
         book_id INT,
         issue_date DATE,
         issue_until DATE,
-        FOREIGN KEY (member_id) REFERENCES members(id),
-        FOREIGN KEY (book_id) REFERENCES books(id)
+
+        FOREIGN KEY (member_id)
+            REFERENCES {MEMBERS}(id)
+            ON DELETE CASCADE,
+        FOREIGN KEY (book_id)
+            REFERENCES {BOOKS}(id)
+            ON DELETE CASCADE
     )"""
 )
 
