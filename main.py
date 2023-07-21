@@ -247,6 +247,121 @@ def get_issued_books(member_id):
 
 
 # Functions for the main loop
+## Functions for the Members menu
+def view_member():
+    member_id, m = input_member()
+    if not m:
+        return
+
+    issued_books = get_issued_books(member_id)
+
+    member = {
+        "Member ID": m["id"],
+        "Name": m["name"],
+        "Member Since": date(m["member_since"]),
+        "Issued Books": len(issued_books),
+        "Expired Issues": len([b for b in issued_books if b["issue_until"] < date()])
+    }
+    print(border(pretty_dict(member)))
+
+def add_member():
+    name = input("Please input name of the member: ").title()
+    if not name:
+        print("Name cannot be empty")
+        return
+
+    cursor.execute(
+        (
+            f"""INSERT INTO {MEMBERS} (name, member_since)
+            VALUES (%s, CURDATE())"""
+        ),
+        (name,)
+    )
+    member_id = cursor.lastrowid
+    con.commit()
+    print(border(f"Added new member {name} (#{member_id})"))
+
+## Functions for the Books menu
+def view_inventory():
+    print(
+        tabulate(get_from_table(BOOKS))
+    )
+
+def view_book():
+    book_id, book = input_book()
+    if not book:
+        return
+
+    print(border(pretty_dict(format_book(book))))
+
+def add_book():
+    name = input("Please input name of the book: ")
+    if not name:
+        print("Name cannot be empty")
+        return
+    author = input("Please input author of the book: ").title()
+    if not author:
+        print("Author cannot be empty")
+        return
+    try:
+        year = int(input("Please input publication year of the book: "))
+    except ValueError:
+        print("Year must be a number")
+        return
+
+
+    cursor.execute(
+        (
+            f"""INSERT INTO {BOOKS} (name, author, year)
+            VALUES (%s, %s, %s)"""
+        ),
+        (name, author, year)
+    )
+    book_id = cursor.lastrowid
+    con.commit()
+    print(border(f"Added new book {name} (#{book_id})"))
+
+## Functions for the Issues menu
+def view_issued_books():
+    print_table(MEMBERS)
+    _id, m = input_member()
+    if not m:
+        return
+
+    issues = get_issued_books(_id)
+    if not issues:
+        print(
+            border(f"Member {m['name']} (#{_id}) does not have any issued books.")
+        )
+        return
+
+    issues_list = []
+    for issue in issues:
+        issue_dict = {}
+
+        book = get_from_table(BOOKS, issue["book_id"])[0]
+        issue_dict["Book ID"] = book["id"]
+        issue_dict["Book Name"] = book["name"]
+
+        issue_dict["Issue Date"] = date(issue["issue_date"])
+
+        issue_until = issue["issue_until"]
+        issue_dict["Issue Until"] = date(issue_until)
+
+        today = date()
+        # If today is greater than expiry date aka expiry date has passed
+        if today > issue_until:
+            # Update fine amount based on fine per day
+            issue_dict["Fine Amount"] = f"{(today - issue_until).days * FINE_PER_DAY}rs"
+
+        issues_list.append(issue_dict)
+
+    books = format_books(issues_list, indent="    ")
+    print(
+        f"Books issued to {m['name']} (#{_id}):",
+        tabulate(issues_list),
+        sep="\n"
+    )
 
 # These are for the structure of the menus
 MAIN_MENU = ("Main Menu", "main")
@@ -256,30 +371,35 @@ MENUS = {
         ("Members", "members"),
         ("Books", "books"),
         ("Issues", "issues"),
+        "",
         MAIN_MENU,
         EXIT,
     ],
     "members": [
-        ("Add Member", add_member),
         ("Search Members", search_members),
         ("View Member Details", view_member),
+        "",
+        ("Add Member", add_member),
         ("Edit Member Details", edit_member),
         ("Remove Member", remove_member),
         MAIN_MENU,
         EXIT,
     ],
     "books": [
-        ("Add Book", add_book),
-        ("Search Book", search_books),
+        ("View Inventory", view_inventory)
+        ("Search Books", search_books),
         ("View Book Details", view_book),
+        "",
+        ("Add Book", add_book),
         ("Edit Book Details", edit_book),
         ("Remove Book", remove_book),
         MAIN_MENU,
         EXIT,
     ],
     "issues": [
-        ("Issue Book", issue_book),
         ("View Issued Books", view_issued_books),
+        "",
+        ("Issue Book", issue_book),
         ("Edit Issue Details", edit_issue),
         ("Un-Issue", unissue),
         MAIN_MENU,
@@ -287,8 +407,7 @@ MENUS = {
     ],
 }
 
-# This variable keeps track of which menu we're at
-_menu = "main"
+_menu = "main"  # This variable keeps track of which menu we're at
 def menu():
     """Returns current menu options"""
 
@@ -300,7 +419,7 @@ def show_current_menu():
     menu = MENUS[_menu]
     text = "\n".join(
         [
-            f"{option} {desc}" for option, desc in menu.items()
+            (f"{idx + 1}. {option[0]}" if isinstance(option, tuple) else "") for idx, option in enumerate(menu)
         ]
     )
     print(border(text))
@@ -308,143 +427,35 @@ def show_current_menu():
 def set_menu(menu):
     """Sets current menu"""
 
-    if len(menu) == 0:
-        return
-
     global _menu
     _menu = menu
 
+# Main loop of the program
 while True:
-    # This try-except block catches ValueError in case a string was input
+    current_menu = menu()
+    show_current_menu()
+    # This try-except block shows the menu again in case of invalid input
     try:
-        option = int(input("Please select an option (1-9): "))
+        desc, func = current_menu[
+            int(input(f"Please select an option (1-{len(current_menu)}): "))
+        ]
     except ValueError:
-        print(MENU)
+        continue
+    except IndexError:
+        print(border("Selected option is out of range."))
         continue
 
-    # If selected action is not within list of options
-    if not 1 <= option <= 9:
-        print(border("Selected option is out of range"))
+    if isinstance(func, str):
+        # If the exit option was selected, break out of the program
+        if func == EXIT[-1]:
+            break
+
+        set_menu(func)
         continue
+    else:
+        func()
 
-    # If selected option is 1: View Member Details
-    if option == 1:
-        member_id, m = input_member()
-        if not m:
-            continue
-
-        issued_books = get_issued_books(member_id)
-
-        member = {
-            "Member ID": m["id"],
-            "Name": m["name"],
-            "Member Since": date(m["member_since"]),
-            "Issued Books": len(issued_books),
-            "Expired Issues": len([b for b in issued_books if b["issue_until"] < date()])
-        }
-        print(border(pretty_dict(member)))
-
-    # If selected option is 2: View Book Details
-    elif option == 2:
-        book_id, book = input_book()
-        if not book:
-            continue
-
-        print(border(pretty_dict(format_book(book))))
-
-    # If selected option is 3: View inventory
-    elif option == 3:
-        print(
-            tabulate(get_from_table(BOOKS))
-        )
-
-    # If selected option is 4: View Issued Books
-    elif option == 4:
-        print_table(MEMBERS)
-        _id, m = input_member()
-        if not m:
-            continue
-
-        issues = get_issued_books(_id)
-        if not issues:
-            print(
-                border(f"Member {m['name']} (#{_id}) does not have any issued books.")
-            )
-            continue
-
-        issues_list = []
-        for issue in issues:
-            issue_dict = {}
-
-            book = get_from_table(BOOKS, issue["book_id"])[0]
-            issue_dict["Book ID"] = book["id"]
-            issue_dict["Book Name"] = book["name"]
-
-            issue_dict["Issue Date"] = date(issue["issue_date"])
-
-            issue_until = issue["issue_until"]
-            issue_dict["Issue Until"] = date(issue_until)
-
-            today = date()
-            # If today is greater than expiry date aka expiry date has passed
-            if today > issue_until:
-                # Update fine amount based on fine per day
-                issue_dict["Fine Amount"] = f"{(today - issue_until).days * FINE_PER_DAY}rs"
-
-            issues_list.append(issue_dict)
-
-        books = format_books(issues_list, indent="    ")
-        print(
-            f"Books issued to {m['name']} (#{_id}):",
-            tabulate(issues_list),
-            sep="\n"
-        )
-
-    # If selected option is 5: Add a member
-    elif option == 5:
-        name = input("Please input name of the member: ").title()
-        if not name:
-            print("Name cannot be empty")
-            continue
-
-        cursor.execute(
-            (
-                f"""INSERT INTO {MEMBERS} (name, member_since)
-                VALUES (%s, CURDATE())"""
-            ),
-            (name,)
-        )
-        member_id = cursor.lastrowid
-        con.commit()
-        print(border(f"Added new member {name} (#{member_id})"))
-
-    # If selected option is 6: Add a book
-    elif option == 6:
-        name = input("Please input name of the book: ")
-        if not name:
-            print("Name cannot be empty")
-            continue
-        author = input("Please input author of the book: ").title()
-        if not author:
-            print("Author cannot be empty")
-            continue
-        try:
-            year = int(input("Please input publication year of the book: "))
-        except ValueError:
-            print("Year must be a number")
-            continue
-
-
-        cursor.execute(
-            (
-                f"""INSERT INTO {BOOKS} (name, author, year)
-                VALUES (%s, %s, %s)"""
-            ),
-            (name, author, year)
-        )
-        book_id = cursor.lastrowid
-        con.commit()
-        print(border(f"Added new book {name} (#{book_id})"))
+    print()  # Add a line break after each loop
 
     # If selected option is 7: Issue a book
     elif option == 7:
