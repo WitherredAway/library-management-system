@@ -3,8 +3,8 @@ import datetime
 import mysql.connector as mcon
 
 
-BORDER = "-" * 50
-MBORDER = "=" * 50
+BORDER = "-" * 40
+MBORDER = "=" * 40
 
 FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
@@ -90,11 +90,18 @@ def pretty_dict(dictionary, *, indent=""):
 
 def format_book(book):
     try:
+        cursor.execute(
+            f"""SELECT * FROM {ISSUED_BOOKS}
+            WHERE book_id = %s""",
+            (book["id"],)
+        )
+        issues = cursor.fetchall()
         return {
             "Book ID": book["id"],
             "Name": book["name"],
             "Author": book["author"],
-            "Release Year": book["year"]
+            "Release Year": book["year"],
+            "Issues": len(issues)
         }
     except KeyError:
         return book
@@ -118,8 +125,7 @@ def tabulate(data):
     """Function to nicely tabulate data
 
     'data' has to be a list of dictionaries.
-    Each of those dictionaries need to have the same keys,
-    which will be the columns. E.g.:
+    The keys of these dictionaries will be the columns. E.g.:
     [
         {'id': 1, 'name': 'Souvic Das', 'member_since': datetime.date(2023, 7, 20)},
         {'id': 2, 'name': 'Arkaprovo Das', 'member_since': datetime.date(2023, 7, 21)},
@@ -131,23 +137,16 @@ def tabulate(data):
     if len(data) == 0:
         return ""
 
-    # Ensure that all rows are of the same length
-    if not all(len(d) == len(data[0]) for d in data):
-        raise ValueError("Inconsistent row lengths")
-
-    # Ensure that all rows have the same headers
-    if not all(all(data[0].get(k) is not None for k in d) for d in data):
-        raise ValueError("Inconsistent headers")
-
     # Dictionary of each header and its largest value
-    headers = {k: max([len(str(d[k])) for d in data] + [len(k)]) for k in data[0].keys()}
+    longest_row = max(data, key=lambda d: len(d))
+    headers = {k: max([len(str(d.get(k, ""))) for d in data] + [len(k)]) for k in longest_row.keys()}
     data_list = []
 
     # Loop through each row and put each value into a tuple
     for row in data:
         d = []
         for h in headers:
-            v = row[h]
+            v = row.get(h, "")
             # If a value is a date object, turn it into string
             if isinstance(v, datetime.date):
                 v = date(v)
@@ -180,36 +179,71 @@ def tabulate(data):
     return "\n".join(table)
 
 # Data fetch functions
-def get_from_table(table, _id = None):
-    """Function to get details from table, optionally based on id. e.g. member details from members table"""
+def get_from_table(table, _id = None, *, id_col = "id", n = None):
+    """Function to get details from table, optionally based on id.
+    e.g. member details from members table"""
 
-    if _id is None:
-        cursor.execute(f"""SELECT * FROM {table}""")
-    else:
-        cursor.execute(
-            f"""SELECT * FROM {table}
-                WHERE id = %s""",
-            (_id,)
-        )
+    query = f"""SELECT * FROM {table}"""
+    params = []
+    if _id is not None and id_col is not None:
+        query += f"\nWHERE {id_col} = %s"
+        params.append(_id)
+
+    if n is not None:
+        query += "\nLIMIT %s"
+        params.append(n)
+
+    cursor.execute(
+        query,
+        params
+    )
     return cursor.fetchall()
+
+def print_table(table, *, n = None):
+    """Function to print all members in the database"""
+
+    table = get_from_table(table, n=n)
+    print(tabulate(table))
 
 def input_member():
     """Function to get member data from user input"""
-    _id = int(input("Please input the member's ID: "))
+
+    try:
+        _id = int(input("Please input member ID: "))
+    except ValueError:
+        print(border("Member ID must be a number"))
+        return None, None
+
     member = get_from_table(MEMBERS, _id)
     if member:
         member = member[0]
+    else:
+        print(border(f"Member with ID {_id} does not exist."))
+
     return _id, member
+
+def input_book():
+    """Function to get book data from user input"""
+
+    try:
+        _id = int(input("Please input book ID: "))
+    except ValueError:
+        print(border("Book ID must be a number"))
+        return None, None
+
+    book = get_from_table(BOOKS, _id)
+    if book:
+        book = book[0]
+    else:
+        print(border(f"Book with ID {_id} does not exist."))
+
+    return _id, book
 
 def get_issued_books(member_id):
     """Function to get books issued to a member"""
 
-    cursor.execute(
-        f"""SELECT * FROM {ISSUED_BOOKS}
-            WHERE member_id = %s""",
-        (member_id,)
-    )
-    return cursor.fetchall()
+    issues = get_from_table(ISSUED_BOOKS, member_id, id_col="member_id")
+    return issues
 
 
 # The main loop of the program
@@ -233,7 +267,7 @@ while True:
     try:
         option = int(input("Please select an option (1-9): "))
     except ValueError:
-        print(border("Please select an integer option from 1 to 9"))
+        print(MENU)
         continue
 
     # If selected action is not within list of options
@@ -243,40 +277,44 @@ while True:
 
     # If selected option is 1: View Member Details
     if option == 1:
-        _id, m = input_member()
+        member_id, m = input_member()
         if not m:
-            print(border(f"Member with ID {_id} does not exist."))
             continue
+
+        issued_books = get_issued_books(member_id)
+
         member = {
-            "ID": m["id"],
+            "Member ID": m["id"],
             "Name": m["name"],
-            "Member Since": date(m["member_since"])
+            "Member Since": date(m["member_since"]),
+            "Issued Books": len(issued_books),
+            "Expired Issues": len([b for b in issued_books if b["issue_until"] < date()])
         }
         print(border(pretty_dict(member)))
 
     # If selected option is 2: View Book Details
     elif option == 2:
-        _id = int(input("Please input the book's ID: "))
-        book = get_from_table(BOOKS, _id)
+        book_id, book = input_book()
         if not book:
-            print(border(f"Book with ID {_id} does not exist."))
             continue
-        book = book[0]
+
         print(border(pretty_dict(format_book(book))))
 
     # If selected option is 3: View inventory
     elif option == 3:
-        print(border(f'Books currently in inventory:\n{format_books(get_from_table(BOOKS), indent="    ")}'))
+        print(
+            tabulate(get_from_table(BOOKS))
+        )
 
     # If selected option is 4: View Issued Books
     elif option == 4:
+        print_table(MEMBERS)
         _id, m = input_member()
         if not m:
-            print(border(f"Member with ID {_id} does not exist."))
             continue
 
         issues = get_issued_books(_id)
-        if issues is None or len(issues) == 0:
+        if not issues:
             print(
                 border(f"Member {m['name']} (#{_id}) does not have any issued books.")
             )
@@ -288,6 +326,7 @@ while True:
 
             book = get_from_table(BOOKS, issue["book_id"])[0]
             issue_dict["Book ID"] = book["id"]
+            issue_dict["Book Name"] = book["name"]
 
             issue_dict["Issue Date"] = date(issue["issue_date"])
 
@@ -304,12 +343,17 @@ while True:
 
         books = format_books(issues_list, indent="    ")
         print(
-            border(f"Books issued to {m['name']} (#{_id}):\n{books}")
+            f"Books issued to {m['name']} (#{_id}):",
+            tabulate(issues_list),
+            sep="\n"
         )
 
     # If selected option is 5: Add a member
     elif option == 5:
         name = input("Please input name of the member: ").title()
+        if not name:
+            print("Name cannot be empty")
+            continue
 
         cursor.execute(
             (
@@ -325,8 +369,19 @@ while True:
     # If selected option is 6: Add a book
     elif option == 6:
         name = input("Please input name of the book: ")
+        if not name:
+            print("Name cannot be empty")
+            continue
         author = input("Please input author of the book: ").title()
-        year = int(input("Please input publication year of the book: "))
+        if not author:
+            print("Author cannot be empty")
+            continue
+        try:
+            year = int(input("Please input publication year of the book: "))
+        except ValueError:
+            print("Year must be a number")
+            continue
+
 
         cursor.execute(
             (
@@ -341,45 +396,59 @@ while True:
 
     # If selected option is 7: Issue a book
     elif option == 7:
-        member_id, m = input_member()
-        if not m:
-            print(f"Member with ID {member_id} does not exist.")
+        print_table(MEMBERS)
+        member_id, member = input_member()
+        if not member:
             continue
 
+        print_table(BOOKS)
         book_id, book = input_book()
-        if book is None:
-            print(f"Book with ID {book_id} does not exist.")
+        if not book:
             continue
 
-        if issued_books.get(member_id) is None:
-            issued_books[member_id] = {}
-        issued_book = issued_books[member_id].get(book_id)
+        cursor.execute(
+            f"""SELECT * FROM {ISSUED_BOOKS}
+            WHERE member_id = %s
+                AND book_id = %s""",
+            (member_id, book_id)
+        )
+        issued_book = cursor.fetchone()
+
         if issued_book is None:
-            issued_books[member_id][book_id] = {
-                "issued date": date(),
-                "issued until": date()
-                + datetime.timedelta(days=REINSTATEMENT_DAYS),
-            }
+            cursor.execute(
+                f"""INSERT INTO {ISSUED_BOOKS} (member_id, book_id, issue_date, issue_until)
+                VALUES (%s, %s, %s, %s)""",
+                (member_id, book_id, date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS))
+            )
+            con.commit()
+
         # If expiry date is less than today; issue has expired
-        elif issued_book["issued until"] < date():
+        elif issued_book["issue_until"] < date():
             renew = input("Renew issuance? y/N: ")
             if renew not in "yY":
                 print("Aborted")
                 continue
-            issued_book["issued date"] = date()
-            issued_book["issued until"] = date() + datetime.timedelta(
-                days=REINSTATEMENT_DAYS
+
+            cursor.execute(
+                f"""UPDATE {ISSUED_BOOKS}
+                SET issue_date = %s,
+                    issue_until = %s
+                WHERE member_id = %s
+                    AND book_id = %s""",
+                (date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
             )
+            con.commit()
+
         # Else, i.e. when expiry date is larger than today; issue hasn't expired yet
         else:
             remaining = (
-                issued_book["issued until"] - date()
+                issued_book["issue_until"] - date()
             ).days  # Difference (in days) between expiration date and today
             print(
                 # This string is split into two halves to reduce the no. of characters in the line
                 (
                     f"Book {book['name']} (#{book_id}) is already issued"
-                    f" to {m['name']} (#{member_id}) for {remaining} more days"
+                    f" to {member['name']} (#{member_id}) for {remaining} more day(s)"
                 )
             )
             renew = input(
@@ -389,14 +458,22 @@ while True:
                 print("Aborted")
                 continue
 
-            issued_book["issued until"] = issued_book[
-                "issued until"
-            ] + datetime.timedelta(days=REINSTATEMENT_DAYS)
+            cursor.execute(
+                f"""UPDATE {ISSUED_BOOKS}
+                SET issue_until = %s
+                WHERE member_id = %s
+                    AND book_id = %s""",
+                (date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
+            )
+            con.commit()
+
         print(
-            # This string is split into two halves to reduce the no. of characters in the line
-            (
-                f"Issued book {book['name']} (#{book_id})"
-                f" to {m['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
+            border(
+                # This string is split into two halves to reduce the no. of characters in the line
+                (
+                    f"Issued book {book['name']} (#{book_id})"
+                    f" to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} day(s)"
+                )
             )
         )
 
