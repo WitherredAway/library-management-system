@@ -363,47 +363,119 @@ def view_issued_books():
         sep="\n"
     )
 
+def issue_book():
+    print_table(MEMBERS)
+    member_id, member = input_member()
+    if not member:
+        return
+
+    print_table(BOOKS)
+    book_id, book = input_book()
+    if not book:
+        return
+
+    cursor.execute(
+        f"""SELECT * FROM {ISSUED_BOOKS}
+        WHERE member_id = %s
+            AND book_id = %s""",
+        (member_id, book_id)
+    )
+    issued_book = cursor.fetchone()
+
+    if issued_book is None:
+        cursor.execute(
+            f"""INSERT INTO {ISSUED_BOOKS} (member_id, book_id, issue_date, issue_until)
+            VALUES (%s, %s, %s, %s)""",
+            (member_id, book_id, date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS))
+        )
+        con.commit()
+
+    # If expiry date is less than today; issue has expired
+    elif issued_book["issue_until"] < date():
+        renew = input("Renew issuance? y/N: ")
+        if renew not in "yY":
+            print("Aborted")
+            return
+
+        cursor.execute(
+            f"""UPDATE {ISSUED_BOOKS}
+            SET issue_date = %s,
+                issue_until = %s
+            WHERE member_id = %s
+                AND book_id = %s""",
+            (date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
+        )
+        con.commit()
+
+    # Else, i.e. when expiry date is larger than today; issue hasn't expired yet
+    else:
+        remaining = (
+            issued_book["issue_until"] - date()
+        ).days  # Difference (in days) between expiration date and today
+        print(
+            # This string is split into two halves to reduce the no. of characters in the line
+            (
+                f"Book {book['name']} (#{book_id}) is already issued"
+                f" to {member['name']} (#{member_id}) for {remaining} more day(s)"
+            )
+        )
+        renew = input(
+            f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: "
+        )
+        if renew not in "yY":
+            print("Aborted")
+            return
+
+        cursor.execute(
+            f"""UPDATE {ISSUED_BOOKS}
+            SET issue_until = %s
+            WHERE member_id = %s
+                AND book_id = %s""",
+            (date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
+        )
+        con.commit()
+
+    print(
+        border(
+            # This string is split into two halves to reduce the no. of characters in the line
+            (
+                f"Issued book {book['name']} (#{book_id})"
+                f" to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} day(s)"
+            )
+        )
+    )
+
 # These are for the structure of the menus
-MAIN_MENU = ("Main Menu", "main")
-EXIT = ("Exit", "exit")
+MAINMENU = "main"
+MAINMENU_KEY = "0"
+EXIT_KEY = "q"
+
 MENUS = {
-    "main": [
+    MAINMENU: [
         ("Members", "members"),
         ("Books", "books"),
         ("Issues", "issues"),
-        "",
-        MAIN_MENU,
-        EXIT,
     ],
     "members": [
-        ("Search Members", search_members),
+        # ("Search Members", search_members),
         ("View Member Details", view_member),
-        "",
         ("Add Member", add_member),
-        ("Edit Member Details", edit_member),
-        ("Remove Member", remove_member),
-        MAIN_MENU,
-        EXIT,
+        # ("Edit Member Details", edit_member),
+        # ("Remove Member", remove_member),
     ],
     "books": [
-        ("View Inventory", view_inventory)
-        ("Search Books", search_books),
+        ("View Inventory", view_inventory),
+        # ("Search Books", search_books),
         ("View Book Details", view_book),
-        "",
         ("Add Book", add_book),
-        ("Edit Book Details", edit_book),
-        ("Remove Book", remove_book),
-        MAIN_MENU,
-        EXIT,
+        # ("Edit Book Details", edit_book),
+        # ("Remove Book", remove_book),
     ],
     "issues": [
         ("View Issued Books", view_issued_books),
-        "",
         ("Issue Book", issue_book),
-        ("Edit Issue Details", edit_issue),
-        ("Un-Issue", unissue),
-        MAIN_MENU,
-        EXIT,
+        # ("Edit Issue Details", edit_issue),
+        # ("Un-Issue", un_issue),
     ],
 }
 
@@ -413,16 +485,23 @@ def menu():
 
     return MENUS[_menu]
 
-def show_current_menu():
+def show_current_menu(indent = "    "):
     """Shows current menu"""
 
     menu = MENUS[_menu]
-    text = "\n".join(
+    options = "\n".join(
         [
-            (f"{idx + 1}. {option[0]}" if isinstance(option, tuple) else "") for idx, option in enumerate(menu)
+            f"{indent}{idx + 1}. {option[0]}" for idx, option in enumerate(menu)
+        ] + [
+            "",
+            f"{indent}{MAINMENU_KEY}. Main Menu",
+            f"{indent}{EXIT_KEY}. Exit"
         ]
     )
-    print(border(text))
+    text = f"""{_menu.title():^{len(MBORDER)}}
+{BORDER}
+{options}"""
+    print(f"{MBORDER}\n{text}\n{MBORDER}")
 
 def set_menu(menu):
     """Sets current menu"""
@@ -430,121 +509,42 @@ def set_menu(menu):
     global _menu
     _menu = menu
 
+    show_current_menu()
+
 # Main loop of the program
+show_current_menu()
 while True:
     current_menu = menu()
-    show_current_menu()
-    # This try-except block shows the menu again in case of invalid input
-    try:
-        desc, func = current_menu[
-            int(input(f"Please select an option (1-{len(current_menu)}): "))
-        ]
-    except ValueError:
-        continue
-    except IndexError:
-        print(border("Selected option is out of range."))
-        continue
-
-    if isinstance(func, str):
-        # If the exit option was selected, break out of the program
-        if func == EXIT[-1]:
-            break
-
-        set_menu(func)
-        continue
-    else:
-        func()
-
-    print()  # Add a line break after each loop
-
-    # If selected option is 7: Issue a book
-    elif option == 7:
-        print_table(MEMBERS)
-        member_id, member = input_member()
-        if not member:
-            continue
-
-        print_table(BOOKS)
-        book_id, book = input_book()
-        if not book:
-            continue
-
-        cursor.execute(
-            f"""SELECT * FROM {ISSUED_BOOKS}
-            WHERE member_id = %s
-                AND book_id = %s""",
-            (member_id, book_id)
-        )
-        issued_book = cursor.fetchone()
-
-        if issued_book is None:
-            cursor.execute(
-                f"""INSERT INTO {ISSUED_BOOKS} (member_id, book_id, issue_date, issue_until)
-                VALUES (%s, %s, %s, %s)""",
-                (member_id, book_id, date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS))
-            )
-            con.commit()
-
-        # If expiry date is less than today; issue has expired
-        elif issued_book["issue_until"] < date():
-            renew = input("Renew issuance? y/N: ")
-            if renew not in "yY":
-                print("Aborted")
-                continue
-
-            cursor.execute(
-                f"""UPDATE {ISSUED_BOOKS}
-                SET issue_date = %s,
-                    issue_until = %s
-                WHERE member_id = %s
-                    AND book_id = %s""",
-                (date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
-            )
-            con.commit()
-
-        # Else, i.e. when expiry date is larger than today; issue hasn't expired yet
-        else:
-            remaining = (
-                issued_book["issue_until"] - date()
-            ).days  # Difference (in days) between expiration date and today
-            print(
-                # This string is split into two halves to reduce the no. of characters in the line
-                (
-                    f"Book {book['name']} (#{book_id}) is already issued"
-                    f" to {member['name']} (#{member_id}) for {remaining} more day(s)"
-                )
-            )
-            renew = input(
-                f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: "
-            )
-            if renew not in "yY":
-                print("Aborted")
-                continue
-
-            cursor.execute(
-                f"""UPDATE {ISSUED_BOOKS}
-                SET issue_until = %s
-                WHERE member_id = %s
-                    AND book_id = %s""",
-                (date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
-            )
-            con.commit()
-
-        print(
-            border(
-                # This string is split into two halves to reduce the no. of characters in the line
-                (
-                    f"Issued book {book['name']} (#{book_id})"
-                    f" to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} day(s)"
-                )
-            )
-        )
-
-    # If selected option is 9: Show Menu Again, print the meny again
-    elif option == 8:
-        print(MENU)
-
-    # If selected option is 9: Exit, break out of the loop
-    elif option == 9:
+    option = input(f"Please enter menu option (1-{len(current_menu)}): ")
+    if option.lower() == EXIT_KEY:
+        # Exit the program if exit key chosen
         con.close()
         break
+    elif option == MAINMENU_KEY:
+        # Skip if mainmenu option chosen or empty
+        set_menu(MAINMENU)
+        continue
+    else:
+        try:
+            desc, action = current_menu[
+                int(option) - 1
+            ]
+        except ValueError:
+            # Show menu if non-integer input
+            # Allows entering empty input to
+            # see menu again
+            show_current_menu()
+            continue
+        except IndexError:
+            # Skip if chosen option is out of range
+            print(border("Selected option is out of range."))
+            continue
+
+    if isinstance(action, str):
+        # If action is string, select the menu corresponding to that string
+        set_menu(action)
+        continue
+    else:
+        # Else, call the corresponding function
+        # since it can only be str or function
+        action()
