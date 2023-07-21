@@ -3,6 +3,9 @@ import datetime
 import mysql.connector as mcon
 
 
+BORDER = "-" * 50
+MBORDER = "=" * 50
+
 FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
@@ -54,41 +57,64 @@ cursor.execute(
 
 con.commit()
 
-# All the utility functions
-def str_to_date(date_str=None):
+
+# Formatting functions
+def border(string):
+    """Puts border in lines before and after a string"""
+    return f"{BORDER}\n{string}\n{BORDER}"
+
+def date(date=None):
     """This function returns the current date and time in IST timezone"""
-    if date_str is None:
-        date_obj = datetime.date.today()
-    else:
-        day, month, year = date_str.split("/")
-        date_obj = datetime.date(int(year), int(month), int(day))
+    if date is None:
+        return datetime.date.today()
+    elif isinstance(date, str):
+        day, month, year = date.split("/")
+        return datetime.date(int(year), int(month), int(day))
+    elif isinstance(date, datetime.date):
+        return f"{date:%d-%m-%Y}"
 
-    return date_obj
+    # If it's an unexpected input
+    raise ValueError("Invalid input type")
 
-
-def format_dict(dictionary, *, indent=""):
+def pretty_dict(dictionary, *, indent=""):
     """Function to nicely format the keys and values of a dictionary"""
 
     # This list comprehension is used to format each key and value of the dictionary
-    return "\n".join(
+    details = "\n".join(
         [
-            f"{indent}{key.title() if isinstance(key, str) else key}: {value}"
+            f"{indent}{key}: {value}"
             for key, value in dictionary.items()
         ]
     )
+    return details
 
+def format_book(book):
+    try:
+        return {
+            "Book ID": book["id"],
+            "Name": book["name"],
+            "Author": book["author"],
+            "Release Year": book["year"]
+        }
+    except KeyError:
+        return book
 
-def format_books_dict(book_dict, *, indent=""):
-    """Function to nicely format a book dictionary"""
+def format_books(books, *, indent=""):
+    """Function to nicely format a list of book dictionaries"""
 
     # This list comprehension is used to format each key and value of the book dictionary
+    books_list = []
+    for book in books:
+        books_list.append(format_book(book))
+
     return "\n\n".join(
         [
-            f"{indent}ID: {book_id}\n{format_dict(book, indent=indent)}"
-            for book_id, book in book_dict.items()
+            pretty_dict(book, indent=indent)
+            for book in books_list
         ]
     )
 
+# Data fetch functions
 def get_from_table(table, _id = None):
     """Function to get details from table, optionally based on id. e.g. member details from members table"""
 
@@ -102,35 +128,27 @@ def get_from_table(table, _id = None):
         )
     return cursor.fetchall()
 
-    member_id = int(input("Please input the member's ID: "))
-    print()
+def input_member():
+    """Function to get member data from user input"""
+    _id = int(input("Please input the member's ID: "))
+    member = get_from_table(MEMBERS, _id)
+    if member:
+        member = member[0]
+    return _id, member
+
+def get_issued_books(member_id):
+    """Function to get books issued to a member"""
+
     cursor.execute(
-        (
-            """SELECT * FROM members
-            WHERE id = %s"""
-        ),
+        f"""SELECT * FROM {ISSUED_BOOKS}
+            WHERE member_id = %s""",
         (member_id,)
     )
-    member = cursor.fetchone()
-    return member_id, member
-
-
-def input_book():
-    """Function to get book from book ID input"""
-
-    book_id = int(input("Please input the book's ID: "))
-    print()
-    book = books.get(book_id)
-    return book_id, book
+    return cursor.fetchall()
 
 
 # The main loop of the program
-while True:
-    # This try-except block catches ValueError in case a string was input
-    try:
-        option = int(
-            input(
-                f"""
+MENU = f"""{MBORDER}
 1. View Member Details
 2. View Book Details
 3. View Inventory
@@ -140,80 +158,88 @@ while True:
 6. Add a Book
 7. Issue a Book
 
-8. Exit
-Please select an option (1-8): """
-            )
-        )
+8. Show Menu Again
+9. Exit
+{MBORDER}"""
+
+print(MENU)
+while True:
+    # This try-except block catches ValueError in case a string was input
+    try:
+        option = int(input("Please select an option (1-9): "))
     except ValueError:
-        print("Please select an integer option from 1 to 8")
+        print(border("Please select an integer option from 1 to 9"))
         continue
 
-    # This print statement is to add an extra line after the menu
-    print()
-
     # If selected action is not within list of options
-    if not 1 <= option <= 8:
-        print("Selected option is out of range")
+    if not 1 <= option <= 9:
+        print(border("Selected option is out of range"))
         continue
 
     # If selected option is 1: View Member Details
     if option == 1:
-        member_id, member = input_member()
-        if member is None:
-            print(f"Member with ID {member_id} does not exist.")
+        _id, m = input_member()
+        if not m:
+            print(border(f"Member with ID {_id} does not exist."))
             continue
-
-        # member_issued_books = issued_books.get(member_id)
-        # if member_issued_books is not None:
-        #     # Update list of issued book IDs of the member
-        #     member["issued books"].extend(member_issued_books.keys())
-
-        print(member)
+        member = {
+            "ID": m["id"],
+            "Name": m["name"],
+            "Member Since": date(m["member_since"])
+        }
+        print(border(pretty_dict(member)))
 
     # If selected option is 2: View Book Details
     elif option == 2:
         _id = int(input("Please input the book's ID: "))
-        print()
         book = get_from_table(BOOKS, _id)
-        if book is None:
-            print(f"Book with ID {_id} does not exist.")
+        if not book:
+            print(border(f"Book with ID {_id} does not exist."))
             continue
-        print(book)
+        book = book[0]
+        print(border(pretty_dict(format_book(book))))
 
     # If selected option is 3: View inventory
     elif option == 3:
-        print(get_from_table(BOOKS))
+        print(border(f'Books currently in inventory:\n{format_books(get_from_table(BOOKS), indent="    ")}'))
 
     # If selected option is 4: View Issued Books
     elif option == 4:
-        member_id, member = input_member()
-        if member is None:
-            print(f"Member with ID {member_id} does not exist.")
+        _id, m = input_member()
+        if not m:
+            print(border(f"Member with ID {_id} does not exist."))
             continue
 
-        issues = issued_books.get(member_id)
+        issues = get_issued_books(_id)
         if issues is None or len(issues) == 0:
             print(
-                f"Member {member['name']} (#{member_id}) does not have any issued books."
+                border(f"Member {m['name']} (#{_id}) does not have any issued books.")
             )
             continue
 
-        for book_id, issue in issues.items():
-            today = str_to_date()
-            issued_until = issue["issued until"]
+        issues_list = []
+        for issue in issues:
+            issue_dict = {}
+
+            book = get_from_table(BOOKS, issue["book_id"])[0]
+            issue_dict["Book ID"] = book["id"]
+
+            issue_dict["Issue Date"] = date(issue["issue_date"])
+
+            issue_until = issue["issue_until"]
+            issue_dict["Issue Until"] = date(issue_until)
+
+            today = date()
             # If today is greater than expiry date aka expiry date has passed
-            if today > issued_until:
+            if today > issue_until:
                 # Update fine amount based on fine per day
-                issues[book_id]["fine amount"] = (today - issued_until).days * FINE_PER_DAY
-            # Else, if there is fine amount assigned but they're no longer eligible for it, remove it
-            elif "fine amount" in issues[book_id]:
-                del issues[book_id]["fine amount"]
+                issue_dict["Fine Amount"] = f"{(today - issue_until).days * FINE_PER_DAY}rs"
 
-        msg = format_books_dict(issues, indent="    ")
+            issues_list.append(issue_dict)
 
+        books = format_books(issues_list, indent="    ")
         print(
-            f"Books issued to {members[member_id]['name']} (#{member_id}):\n"
-            + "".join(msg),
+            border(f"Books issued to {m['name']} (#{_id}):\n{books}")
         )
 
     # If selected option is 5: Add a member
@@ -222,33 +248,36 @@ Please select an option (1-8): """
 
         cursor.execute(
             (
-                """INSERT INTO members (name, member_since)
+                f"""INSERT INTO {MEMBERS} (name, member_since)
                 VALUES (%s, CURDATE())"""
             ),
             (name,)
         )
         member_id = cursor.lastrowid
         con.commit()
-        print(f"Added new member {name} (#{member_id})")
+        print(border(f"Added new member {name} (#{member_id})"))
 
     # If selected option is 6: Add a book
     elif option == 6:
         name = input("Please input name of the book: ")
         author = input("Please input author of the book: ").title()
         year = int(input("Please input publication year of the book: "))
-        book_id = max(books.keys()) + 1  # Determine next book ID
 
-        books[book_id] = {
-            "name": name,
-            "author": author,
-            "published year": year,
-        }
-        print(f"Added new book {name} (#{book_id})")
+        cursor.execute(
+            (
+                f"""INSERT INTO {BOOKS} (name, author, year)
+                VALUES (%s, %s, %s)"""
+            ),
+            (name, author, year)
+        )
+        book_id = cursor.lastrowid
+        con.commit()
+        print(border(f"Added new book {name} (#{book_id})"))
 
     # If selected option is 7: Issue a book
     elif option == 7:
-        member_id, member = input_member()
-        if member is None:
+        member_id, m = input_member()
+        if not m:
             print(f"Member with ID {member_id} does not exist.")
             continue
 
@@ -262,30 +291,30 @@ Please select an option (1-8): """
         issued_book = issued_books[member_id].get(book_id)
         if issued_book is None:
             issued_books[member_id][book_id] = {
-                "issued date": str_to_date(),
-                "issued until": str_to_date()
+                "issued date": date(),
+                "issued until": date()
                 + datetime.timedelta(days=REINSTATEMENT_DAYS),
             }
         # If expiry date is less than today; issue has expired
-        elif issued_book["issued until"] < str_to_date():
+        elif issued_book["issued until"] < date():
             renew = input("Renew issuance? y/N: ")
             if renew not in "yY":
                 print("Aborted")
                 continue
-            issued_book["issued date"] = str_to_date()
-            issued_book["issued until"] = str_to_date() + datetime.timedelta(
+            issued_book["issued date"] = date()
+            issued_book["issued until"] = date() + datetime.timedelta(
                 days=REINSTATEMENT_DAYS
             )
         # Else, i.e. when expiry date is larger than today; issue hasn't expired yet
         else:
             remaining = (
-                issued_book["issued until"] - str_to_date()
+                issued_book["issued until"] - date()
             ).days  # Difference (in days) between expiration date and today
             print(
                 # This string is split into two halves to reduce the no. of characters in the line
                 (
                     f"Book {book['name']} (#{book_id}) is already issued"
-                    f" to {member['name']} (#{member_id}) for {remaining} more days"
+                    f" to {m['name']} (#{member_id}) for {remaining} more days"
                 )
             )
             renew = input(
@@ -302,10 +331,15 @@ Please select an option (1-8): """
             # This string is split into two halves to reduce the no. of characters in the line
             (
                 f"Issued book {book['name']} (#{book_id})"
-                f" to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
+                f" to {m['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} days"
             )
         )
-    # If selected option is 8: Exit, break out of the loop
+
+    # If selected option is 9: Show Menu Again, print the meny again
     elif option == 8:
+        print(MENU)
+
+    # If selected option is 9: Exit, break out of the loop
+    elif option == 9:
         con.close()
         break
