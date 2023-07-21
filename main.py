@@ -7,8 +7,10 @@ FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
 
-con = mcon.connect(host="localhost", user="root", passwd="root", database="library")  # Make sure to create the 'library' database
-cursor = con.cursor()
+# Make sure to create the 'library' database
+con = mcon.connect(host="localhost", user="root", passwd="root", database="library")
+# The dictionary kwarg ensures all output is a dictionary of col: value
+cursor = con.cursor(dictionary=True)
 
 # Names of the tables
 MEMBERS = "members"
@@ -82,8 +84,18 @@ def format_books_dict(book_dict, *, indent=""):
         ]
     )
 
-def input_member():
-    """Function to get member from member ID input"""
+def get_from_table(table, _id = None):
+    """Function to get details from table, optionally based on id. e.g. member details from members table"""
+
+    if _id is None:
+        cursor.execute(f"""SELECT * FROM {table}""")
+    else:
+        cursor.execute(
+            f"""SELECT * FROM {table}
+                WHERE id = %s""",
+            (_id,)
+        )
+    return cursor.fetchall()
 
     member_id = int(input("Please input the member's ID: "))
     print()
@@ -138,6 +150,7 @@ Please select an option (1-8): """
     if not 1 <= option <= 8:
         print("Selected option is out of range")
         continue
+
     # If selected option is 1: View Member Details
     if option == 1:
         member_id, member = input_member()
@@ -151,18 +164,21 @@ Please select an option (1-8): """
         #     member["issued books"].extend(member_issued_books.keys())
 
         print(member)
+
     # If selected option is 2: View Book Details
     elif option == 2:
-        book_id, book = input_book()
+        _id = int(input("Please input the book's ID: "))
+        print()
+        book = get_from_table(BOOKS, _id)
         if book is None:
-            print(f"Book with ID {book_id} does not exist.")
+            print(f"Book with ID {_id} does not exist.")
             continue
-        print(format_dict(book))
+        print(book)
+
     # If selected option is 3: View inventory
     elif option == 3:
-        print(
-            "Books currently in inventory:\n" + format_books_dict(books, indent="    ")
-        )
+        print(get_from_table(BOOKS))
+
     # If selected option is 4: View Issued Books
     elif option == 4:
         member_id, member = input_member()
@@ -194,6 +210,7 @@ Please select an option (1-8): """
             f"Books issued to {members[member_id]['name']} (#{member_id}):\n"
             + "".join(msg),
         )
+
     # If selected option is 5: Add a member
     elif option == 5:
         name = input("Please input name of the member: ").title()
@@ -208,6 +225,7 @@ Please select an option (1-8): """
         member_id = cursor.lastrowid
         con.commit()
         print(f"Added new member {name} (#{member_id})")
+
     # If selected option is 6: Add a book
     elif option == 6:
         name = input("Please input name of the book: ")
@@ -221,6 +239,7 @@ Please select an option (1-8): """
             "published year": year,
         }
         print(f"Added new book {name} (#{book_id})")
+
     # If selected option is 7: Issue a book
     elif option == 7:
         member_id, member = input_member()
