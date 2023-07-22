@@ -303,6 +303,35 @@ def edit(table, col):
     print(border(f"Edited '{table}' #{_id}'s '{col}' to '{new}'"))
 
 
+def remove(table):
+    """Function to remove a record from a table"""
+
+    cursor.execute(f"SHOW KEYS FROM {table} WHERE Key_name = 'PRIMARY'")
+    primary = cursor.fetchone()["Column_name"]
+
+    _id = input(f"""Please input '{primary}' of row to delete from '{table}': """)
+    entity = get_from_table(table, _id, primary=primary)
+    if not entity:
+        return print(border(f"Record with {primary} '{_id}' does not exist"))
+
+    confirm = input(f"""{tabulate(entity)}
+Are you sure you want to delete this record? y/N: """)
+    if confirm not in "yY":
+        print(border("Aborted"))
+        return
+
+    # Edit the values
+    cursor.execute(
+        (
+            f"""DELETE FROM {table}
+            WHERE {primary} = %s"""
+        ),
+        (_id,)
+    )
+    con.commit()
+    print(border(f"Deleted record #{_id} from '{table}'"))
+
+
 ## Functions for the Members menu
 def view_member():
     member_id, m = input_member()
@@ -336,14 +365,10 @@ def add_member():
     )
     member_id = cursor.lastrowid
     con.commit()
-    print(border(f"Added new member {name} (#{member_id})"))
+    print(border(f"Added new member '{name}' (#{member_id})"))
 
 
 ## Functions for the Books menu
-def view_inventory():
-    print(tabulate(get_from_table(BOOKS)))
-
-
 def view_book():
     book_id, book = input_book()
     if not book:
@@ -376,7 +401,7 @@ def add_book():
     )
     book_id = cursor.lastrowid
     con.commit()
-    print(border(f"Added new book {name} (#{book_id})"))
+    print(border(f"Added new book '{name}' (#{book_id})"))
 
 
 ## Functions for the Issues menu
@@ -388,7 +413,7 @@ def view_issued_books():
 
     issues = get_issued_books(_id)
     if not issues:
-        print(border(f"Member {m['name']} (#{_id}) does not have any issued books."))
+        print(border(f"Member '{m['name']}' (#{_id}) does not have any issued books."))
         return
 
     issues_list = []
@@ -508,37 +533,49 @@ def issue_book():
 
 
 # These are for the structure of the menus
-MAINMENU = "main"
 MAINMENU_KEY = "0"
 EXIT_KEY = "q"
 
+MAINMENU = "main"
+# The menu structure. It is a dictionary
+# of menu: list pairs. These lists define
+# all the options of that menu with tuples.
+#
+# The 1st element of which is the option text.
+# The 2nd element either refers to another menu
+# or a function to be executed, in which case
+# the 3rd element optionally is a tuple of
+# parameters for that function.
 MENUS = {
+    # Main menu
     MAINMENU: [
         ("Members", "members"),
         ("Books", "books"),
         ("Issues", "issues"),
     ],
+    # Sub menus
     "members": [
+        ("View All Members", print_table, (MEMBERS,)),
         ("Search Members", search, (MEMBERS, "name")),
         ("View Member Details", view_member),
         ("Add Member", add_member),
         ("Edit Member Details", "edit member"),
-        # ("Remove Member", remove_member),
+        ("Remove Member", remove, (MEMBERS,)),
     ],
     "books": [
-        ("View Inventory", view_inventory),
+        ("View Inventory", print_table, (BOOKS,)),
         ("Search Books", "search books"),
         ("View Book Details", view_book),
         ("Add Book", add_book),
         ("Edit Book Details", "edit book"),
-        # ("Remove Book", remove_book),
+        ("Remove Book", remove, (BOOKS,)),
     ],
     "issues": [
         ("View Issued Books", view_issued_books),
         ("Issue Book", issue_book),
-        # ("Un-Issue", un_issue),
+        ("Un-Issue", remove, (ISSUED_BOOKS,)),
     ],
-    # Sub menus
+    # Sub menus of sub menus
     "search books": [
         ("Search Name", search, (BOOKS, "name")),
         ("Search Author", search, (BOOKS, "author")),
@@ -555,8 +592,6 @@ MENUS = {
 }
 
 _menu = MAINMENU  # This variable keeps track of which menu we're at
-
-
 def menu():
     """Returns current menu options"""
 
