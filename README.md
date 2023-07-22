@@ -1,5 +1,5 @@
 # Library Management System
-CBSE Class 11 Library Management System Computer Science Project using MySQL
+CBSE Class 12 Library Management System Computer Science Project using MySQL
 - For a simpler program. check out [`old-with-sql`](https://github.com/WitherredAway/library-management-system/tree/old-with-sql)
 - For a simpler program using Dictionaries instead of MySQL, check out [`without-sql`](https://github.com/WitherredAway/library-management-system/tree/without-sql)
 
