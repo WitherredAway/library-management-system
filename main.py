@@ -183,14 +183,14 @@ def tabulate(data):
 
 
 # Data fetch functions
-def get_from_table(table, _id=None, *, id_col="id", n=None):
+def get_from_table(table, _id=None, *, primary="id", n=None):
     """Function to get details from table, optionally based on id.
     e.g. member details from members table"""
 
     query = f"""SELECT * FROM {table}"""
     params = []
-    if _id is not None and id_col is not None:
-        query += f"\nWHERE {id_col} = %s"
+    if _id is not None and primary is not None:
+        query += f"\nWHERE {primary} = %s"
         params.append(_id)
 
     if n is not None:
@@ -221,7 +221,7 @@ def input_member():
     if member:
         member = member[0]
     else:
-        print(border(f"Member with ID {_id} does not exist."))
+        print(border(f"Member with ID '{_id}' does not exist."))
 
     return _id, member
 
@@ -239,7 +239,7 @@ def input_book():
     if book:
         book = book[0]
     else:
-        print(border(f"Book with ID {_id} does not exist."))
+        print(border(f"Book with ID '{_id}' does not exist."))
 
     return _id, book
 
@@ -247,12 +247,14 @@ def input_book():
 def get_issued_books(member_id):
     """Function to get books issued to a member"""
 
-    issues = get_from_table(ISSUED_BOOKS, member_id, id_col="member_id")
+    issues = get_from_table(ISSUED_BOOKS, member_id, primary="member_id")
     return issues
 
 
 # Functions for the main loop
 def search(table, col):
+    """Function to search a table's column and match them using LIKE"""
+
     search = input(f"Please input search string (will match {col}): ")
     if not search:
         print("Search string empty, showing all records")
@@ -269,6 +271,36 @@ def search(table, col):
         return print(border("No records found"))
 
     print(tabulate(data))
+
+
+def edit(table, col):
+    """Function to edit a row's column value"""
+
+    cursor.execute(f"SHOW KEYS FROM {table} WHERE Key_name = 'PRIMARY'")
+    primary = cursor.fetchone()["Column_name"]
+
+    _id = input(f"""Editing '{table}'
+    Please input '{primary}' of row to edit: """)
+    entity = get_from_table(table, _id, primary=primary)
+    if not entity:
+        return print(border(f"Record with {primary} '{_id}' does not exist"))
+
+    new = input(f"""Editing '{table}' #{_id}
+    Please input new '{col}' value: """)
+    if not new:
+        return print(border("New value cannot be empty"))
+
+    # Edit the values
+    cursor.execute(
+        (
+            f"""UPDATE {table}
+            SET {col} = %s
+            WHERE {primary} = %s"""
+        ),
+        (new, _id),
+    )
+    con.commit()
+    print(border(f"Edited '{table}' #{_id}'s '{col}' to '{new}'"))
 
 
 ## Functions for the Members menu
@@ -490,7 +522,7 @@ MENUS = {
         ("Search Members", search, (MEMBERS, "name")),
         ("View Member Details", view_member),
         ("Add Member", add_member),
-        # ("Edit Member Details", edit_member),
+        ("Edit Member Details", "edit member"),
         # ("Remove Member", remove_member),
     ],
     "books": [
@@ -498,19 +530,27 @@ MENUS = {
         ("Search Books", "search books"),
         ("View Book Details", view_book),
         ("Add Book", add_book),
-        # ("Edit Book Details", edit_book),
+        ("Edit Book Details", "edit book"),
         # ("Remove Book", remove_book),
     ],
     "issues": [
         ("View Issued Books", view_issued_books),
         ("Issue Book", issue_book),
-        # ("Edit Issue Details", edit_issue),
         # ("Un-Issue", un_issue),
     ],
+    # Sub menus
     "search books": [
         ("Search Name", search, (BOOKS, "name")),
         ("Search Author", search, (BOOKS, "author")),
         ("Search Release Year", search, (BOOKS, "year"))
+    ],
+    "edit member": [
+        ("Edit Name", edit, (MEMBERS, "name"))
+    ],
+    "edit book": [
+        ("Edit Name", edit, (BOOKS, "name")),
+        ("Edit Author", edit, (BOOKS, "author")),
+        ("Edit Release Year", edit, (BOOKS, "year"))
     ]
 }
 
@@ -585,5 +625,10 @@ while True:
         # Else, call the corresponding function
         # using 3rd element as args
         # since it can only be str or function
-        func, args = action
-        func(*args)
+        func = action[0]
+        if len(action) > 1:
+            params = action[1]
+        else:
+            params = ()
+        func(*params)
+
