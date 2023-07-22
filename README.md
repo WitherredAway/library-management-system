@@ -7,7 +7,7 @@ Feel free to use this program, but instead of just blindly copy-pasting it, plea
 
 Also, feel free to open any issues if you have any questions. Not really accepting contributions though because this is a school project done in a very specific required way, but feel free to suggest any changes. I hope this helps :)
 
-### Output
+# Output
 ## Main Menu
 ![main menu](outputs/main_menu.png)
 ## I. Members Menu
