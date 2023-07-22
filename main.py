@@ -11,7 +11,7 @@ REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
 
 # Make sure to create the 'library' database
-con = mcon.connect(host="localhost", user="root", passwd="root", database="library")
+con = mcon.connect(host="localhost", user="root", passwd="root")
 # The dictionary kwarg ensures all output is a dictionary of col: value
 cursor = con.cursor(dictionary=True)
 
@@ -20,7 +20,10 @@ MEMBERS = "members"
 BOOKS = "books"
 ISSUED_BOOKS = "issued_books"
 
-# Initialize all the required tables
+# Initialize the database
+cursor.execute("CREATE DATABASE IF NOT EXISTS library")
+cursor.execute("USE library")
+
 cursor.execute(
     f"""CREATE TABLE IF NOT EXISTS {MEMBERS} (
         id INTEGER PRIMARY KEY AUTO_INCREMENT,
