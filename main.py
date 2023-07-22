@@ -279,14 +279,18 @@ def edit(table, col):
     cursor.execute(f"SHOW KEYS FROM {table} WHERE Key_name = 'PRIMARY'")
     primary = cursor.fetchone()["Column_name"]
 
-    _id = input(f"""Editing '{table}'
-    Please input '{primary}' of row to edit: """)
+    _id = input(
+        f"""Editing '{table}'
+    Please input '{primary}' of row to edit: """
+    )
     entity = get_from_table(table, _id, primary=primary)
     if not entity:
         return print(border(f"Record with {primary} '{_id}' does not exist"))
 
-    new = input(f"""Editing '{table}' #{_id}
-    Please input new '{col}' value: """)
+    new = input(
+        f"""Editing '{table}' #{_id}
+    Please input new '{col}' value: """
+    )
     if not new:
         return print(border("New value cannot be empty"))
 
@@ -314,8 +318,10 @@ def remove(table):
     if not entity:
         return print(border(f"Record with {primary} '{_id}' does not exist"))
 
-    confirm = input(f"""{tabulate(entity)}
-Are you sure you want to delete this record? y/N: """)
+    confirm = input(
+        f"""{tabulate(entity)}
+Are you sure you want to delete this record? y/N: """
+    )
     if confirm not in "yY":
         print(border("Aborted"))
         return
@@ -326,7 +332,7 @@ Are you sure you want to delete this record? y/N: """)
             f"""DELETE FROM {table}
             WHERE {primary} = %s"""
         ),
-        (_id,)
+        (_id,),
     )
     con.commit()
     print(border(f"Deleted record #{_id} from '{table}'"))
@@ -580,19 +586,19 @@ MENUS = {
     "search books": [
         ("Search Name", search, (BOOKS, "name")),
         ("Search Author", search, (BOOKS, "author")),
-        ("Search Release Year", search, (BOOKS, "year"))
+        ("Search Release Year", search, (BOOKS, "year")),
     ],
-    "edit member": [
-        ("Edit Name", edit, (MEMBERS, "name"))
-    ],
+    "edit member": [("Edit Name", edit, (MEMBERS, "name"))],
     "edit book": [
         ("Edit Name", edit, (BOOKS, "name")),
         ("Edit Author", edit, (BOOKS, "author")),
-        ("Edit Release Year", edit, (BOOKS, "year"))
-    ]
+        ("Edit Release Year", edit, (BOOKS, "year")),
+    ],
 }
 
 _menu = MAINMENU  # This variable keeps track of which menu we're at
+
+
 def menu():
     """Returns current menu options"""
 
@@ -668,4 +674,3 @@ while True:
         else:
             params = ()
         func(*params)
-
