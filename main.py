@@ -66,6 +66,7 @@ def border(string):
     """Puts border in lines before and after a string"""
     return f"{BORDER}\n{string}\n{BORDER}"
 
+
 def date(date=None):
     """This function returns the current date and time in IST timezone"""
     if date is None:
@@ -79,24 +80,23 @@ def date(date=None):
     # If it's an unexpected input
     raise ValueError("Invalid input type")
 
+
 def pretty_dict(dictionary, *, indent=""):
     """Function to nicely format the keys and values of a dictionary"""
 
     # This list comprehension is used to format each key and value of the dictionary
     details = "\n".join(
-        [
-            f"{indent}{key}: {value}"
-            for key, value in dictionary.items()
-        ]
+        [f"{indent}{key}: {value}" for key, value in dictionary.items()]
     )
     return details
+
 
 def format_book(book):
     try:
         cursor.execute(
             f"""SELECT * FROM {ISSUED_BOOKS}
             WHERE book_id = %s""",
-            (book["id"],)
+            (book["id"],),
         )
         issues = cursor.fetchall()
         return {
@@ -104,10 +104,11 @@ def format_book(book):
             "Name": book["name"],
             "Author": book["author"],
             "Release Year": book["year"],
-            "Issues": len(issues)
+            "Issues": len(issues),
         }
     except KeyError:
         return book
+
 
 def format_books(books, *, indent=""):
     """Function to nicely format a list of book dictionaries"""
@@ -117,12 +118,8 @@ def format_books(books, *, indent=""):
     for book in books:
         books_list.append(format_book(book))
 
-    return "\n\n".join(
-        [
-            pretty_dict(book, indent=indent)
-            for book in books_list
-        ]
-    )
+    return "\n\n".join([pretty_dict(book, indent=indent) for book in books_list])
+
 
 def tabulate(data):
     """Function to nicely tabulate data
@@ -142,7 +139,10 @@ def tabulate(data):
 
     # Dictionary of each header and its largest value
     longest_row = max(data, key=lambda d: len(d))
-    headers = {k: max([len(str(d.get(k, ""))) for d in data] + [len(k)]) for k in longest_row.keys()}
+    headers = {
+        k: max([len(str(d.get(k, ""))) for d in data] + [len(k)])
+        for k in longest_row.keys()
+    }
     data_list = []
 
     # Loop through each row and put each value into a tuple
@@ -181,8 +181,9 @@ def tabulate(data):
     # +----+---------------+--------------+
     return "\n".join(table)
 
+
 # Data fetch functions
-def get_from_table(table, _id = None, *, id_col = "id", n = None):
+def get_from_table(table, _id=None, *, id_col="id", n=None):
     """Function to get details from table, optionally based on id.
     e.g. member details from members table"""
 
@@ -196,17 +197,16 @@ def get_from_table(table, _id = None, *, id_col = "id", n = None):
         query += "\nLIMIT %s"
         params.append(n)
 
-    cursor.execute(
-        query,
-        params
-    )
+    cursor.execute(query, params)
     return cursor.fetchall()
 
-def print_table(table, *, n = None):
+
+def print_table(table, *, n=None):
     """Function to print all members in the database"""
 
     table = get_from_table(table, n=n)
     print(tabulate(table))
+
 
 def input_member():
     """Function to get member data from user input"""
@@ -225,6 +225,7 @@ def input_member():
 
     return _id, member
 
+
 def input_book():
     """Function to get book data from user input"""
 
@@ -242,6 +243,7 @@ def input_book():
 
     return _id, book
 
+
 def get_issued_books(member_id):
     """Function to get books issued to a member"""
 
@@ -252,9 +254,7 @@ def get_issued_books(member_id):
 # Functions for the main loop
 ## Functions for the Members menu
 def search(table, *cols):
-    search = input(
-        f"Please input search string (will match {', '.join(cols)}): "
-    )
+    search = input(f"Please input search string (will match {', '.join(cols)}): ")
     if not search:
         print("Search string empty, showing all records")
 
@@ -262,7 +262,7 @@ def search(table, *cols):
     cursor.execute(
         f"""SELECT * FROM {table}
         WHERE {' OR '.join([f'{col} LIKE %s' for col in cols])}""",
-        [f"%{search}%" for _ in cols]
+        [f"%{search}%" for _ in cols],
     )
     data = cursor.fetchall()
     # Sorts the data by location of
@@ -273,11 +273,14 @@ def search(table, *cols):
 
     print(tabulate(data))
 
+
 def search_members():
     search(MEMBERS, "name")
 
+
 def search_books():
     search(BOOKS, "name", "author", "year")
+
 
 def view_member():
     member_id, m = input_member()
@@ -291,9 +294,10 @@ def view_member():
         "Name": m["name"],
         "Member Since": date(m["member_since"]),
         "Issued Books": len(issued_books),
-        "Expired Issues": len([b for b in issued_books if b["issue_until"] < date()])
+        "Expired Issues": len([b for b in issued_books if b["issue_until"] < date()]),
     }
     print(border(pretty_dict(member)))
+
 
 def add_member():
     name = input("Please input name of the member: ").title()
@@ -306,17 +310,17 @@ def add_member():
             f"""INSERT INTO {MEMBERS} (name, member_since)
             VALUES (%s, CURDATE())"""
         ),
-        (name,)
+        (name,),
     )
     member_id = cursor.lastrowid
     con.commit()
     print(border(f"Added new member {name} (#{member_id})"))
 
+
 ## Functions for the Books menu
 def view_inventory():
-    print(
-        tabulate(get_from_table(BOOKS))
-    )
+    print(tabulate(get_from_table(BOOKS)))
+
 
 def view_book():
     book_id, book = input_book()
@@ -324,6 +328,7 @@ def view_book():
         return
 
     print(border(pretty_dict(format_book(book))))
+
 
 def add_book():
     name = input("Please input name of the book: ")
@@ -340,17 +345,17 @@ def add_book():
         print(border("Year must be a number"))
         return
 
-
     cursor.execute(
         (
             f"""INSERT INTO {BOOKS} (name, author, year)
             VALUES (%s, %s, %s)"""
         ),
-        (name, author, year)
+        (name, author, year),
     )
     book_id = cursor.lastrowid
     con.commit()
     print(border(f"Added new book {name} (#{book_id})"))
+
 
 ## Functions for the Issues menu
 def view_issued_books():
@@ -361,9 +366,7 @@ def view_issued_books():
 
     issues = get_issued_books(_id)
     if not issues:
-        print(
-            border(f"Member {m['name']} (#{_id}) does not have any issued books.")
-        )
+        print(border(f"Member {m['name']} (#{_id}) does not have any issued books."))
         return
 
     issues_list = []
@@ -388,11 +391,8 @@ def view_issued_books():
         issues_list.append(issue_dict)
 
     books = format_books(issues_list, indent="    ")
-    print(
-        f"Books issued to {m['name']} (#{_id}):",
-        tabulate(issues_list),
-        sep="\n"
-    )
+    print(f"Books issued to {m['name']} (#{_id}):", tabulate(issues_list), sep="\n")
+
 
 def issue_book():
     print_table(MEMBERS)
@@ -409,7 +409,7 @@ def issue_book():
         f"""SELECT * FROM {ISSUED_BOOKS}
         WHERE member_id = %s
             AND book_id = %s""",
-        (member_id, book_id)
+        (member_id, book_id),
     )
     issued_book = cursor.fetchone()
 
@@ -417,7 +417,12 @@ def issue_book():
         cursor.execute(
             f"""INSERT INTO {ISSUED_BOOKS} (member_id, book_id, issue_date, issue_until)
             VALUES (%s, %s, %s, %s)""",
-            (member_id, book_id, date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS))
+            (
+                member_id,
+                book_id,
+                date(),
+                date() + datetime.timedelta(days=REINSTATEMENT_DAYS),
+            ),
         )
         con.commit()
 
@@ -434,7 +439,12 @@ def issue_book():
                 issue_until = %s
             WHERE member_id = %s
                 AND book_id = %s""",
-            (date(), date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
+            (
+                date(),
+                date() + datetime.timedelta(days=REINSTATEMENT_DAYS),
+                member_id,
+                book_id,
+            ),
         )
         con.commit()
 
@@ -450,9 +460,7 @@ def issue_book():
                 f" to {member['name']} (#{member_id}) for {remaining} more day(s)"
             )
         )
-        renew = input(
-            f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: "
-        )
+        renew = input(f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: ")
         if renew not in "yY":
             print(border("Aborted"))
             return
@@ -462,7 +470,7 @@ def issue_book():
             SET issue_until = %s
             WHERE member_id = %s
                 AND book_id = %s""",
-            (date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id)
+            (date() + datetime.timedelta(days=REINSTATEMENT_DAYS), member_id, book_id),
         )
         con.commit()
 
@@ -475,6 +483,7 @@ def issue_book():
             )
         )
     )
+
 
 # These are for the structure of the menus
 MAINMENU = "main"
@@ -511,28 +520,27 @@ MENUS = {
 }
 
 _menu = MAINMENU  # This variable keeps track of which menu we're at
+
+
 def menu():
     """Returns current menu options"""
 
     return MENUS[_menu]
 
-def show_current_menu(indent = "    "):
+
+def show_current_menu(indent="    "):
     """Shows current menu"""
 
     menu = MENUS[_menu]
     options = "\n".join(
-        [
-            f"{indent}{idx + 1}. {option[0]}" for idx, option in enumerate(menu)
-        ] + [
-            "",
-            f"{indent}{MAINMENU_KEY}. Main Menu",
-            f"{indent}{EXIT_KEY}. Exit"
-        ]
+        [f"{indent}{idx + 1}. {option[0]}" for idx, option in enumerate(menu)]
+        + ["", f"{indent}{MAINMENU_KEY}. Main Menu", f"{indent}{EXIT_KEY}. Exit"]
     )
     text = f"""{_menu.title() + " Menu":^{len(MBORDER)}}
 {BORDER}
 {options}"""
     print(f"{MBORDER}\n{text}\n{MBORDER}")
+
 
 def set_menu(menu):
     """Sets current menu"""
@@ -541,6 +549,7 @@ def set_menu(menu):
     _menu = menu
 
     show_current_menu()
+
 
 # Main loop of the program
 show_current_menu()
@@ -561,9 +570,7 @@ while True:
         continue
     else:
         try:
-            desc, action = current_menu[
-                int(option) - 1
-            ]
+            desc, action = current_menu[int(option) - 1]
         except ValueError:
             # Show menu if non-integer input
             # Allows entering empty input to
