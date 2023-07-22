@@ -251,6 +251,34 @@ def get_issued_books(member_id):
 
 # Functions for the main loop
 ## Functions for the Members menu
+def search(table, *cols):
+    search = input(
+        f"Please input search string (will match {', '.join(cols)}): "
+    )
+    if not search:
+        print("Search string empty, showing all records")
+
+    # Get all records where the specified cols match the search string
+    cursor.execute(
+        f"""SELECT * FROM {table}
+        WHERE {' OR '.join([f'{col} LIKE %s' for col in cols])}""",
+        [f"%{search}%" for _ in cols]
+    )
+    data = cursor.fetchall()
+    # Sorts the data by location of
+    # searched string in each name
+    data.sort(key=lambda d: max([str(d[col]).find(search) for col in cols]))
+    if not data:
+        return print(border("No results found"))
+
+    print(tabulate(data))
+
+def search_members():
+    search(MEMBERS, "name")
+
+def search_books():
+    search(BOOKS, "name", "author", "year")
+
 def view_member():
     member_id, m = input_member()
     if not m:
@@ -460,7 +488,7 @@ MENUS = {
         ("Issues", "issues"),
     ],
     "members": [
-        # ("Search Members", search_members),
+        ("Search Members", search_members),
         ("View Member Details", view_member),
         ("Add Member", add_member),
         # ("Edit Member Details", edit_member),
@@ -468,7 +496,7 @@ MENUS = {
     ],
     "books": [
         ("View Inventory", view_inventory),
-        # ("Search Books", search_books),
+        ("Search Books", search_books),
         ("View Book Details", view_book),
         ("Add Book", add_book),
         # ("Edit Book Details", edit_book),
@@ -482,7 +510,7 @@ MENUS = {
     ],
 }
 
-_menu = "main"  # This variable keeps track of which menu we're at
+_menu = MAINMENU  # This variable keeps track of which menu we're at
 def menu():
     """Returns current menu options"""
 
@@ -501,7 +529,7 @@ def show_current_menu(indent = "    "):
             f"{indent}{EXIT_KEY}. Exit"
         ]
     )
-    text = f"""{_menu.title():^{len(MBORDER)}}
+    text = f"""{_menu.title() + " Menu":^{len(MBORDER)}}
 {BORDER}
 {options}"""
     print(f"{MBORDER}\n{text}\n{MBORDER}")
@@ -518,7 +546,11 @@ def set_menu(menu):
 show_current_menu()
 while True:
     current_menu = menu()
-    option = input(f"Please enter menu option (1-{len(current_menu)}): ")
+    option = input(
+        f"""Please select menu option
+1-{len(current_menu)} or ENTER to show options
+>>> """
+    )
     if option.lower() == EXIT_KEY:
         # Exit the program if exit key chosen
         con.close()
