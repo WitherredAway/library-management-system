@@ -270,7 +270,7 @@ def view_member():
 def add_member():
     name = input("Please input name of the member: ").title()
     if not name:
-        print("Name cannot be empty")
+        print(border("Name cannot be empty"))
         return
 
     cursor.execute(
@@ -300,16 +300,16 @@ def view_book():
 def add_book():
     name = input("Please input name of the book: ")
     if not name:
-        print("Name cannot be empty")
+        print(border("Name cannot be empty"))
         return
     author = input("Please input author of the book: ").title()
     if not author:
-        print("Author cannot be empty")
+        print(border("Author cannot be empty"))
         return
     try:
         year = int(input("Please input publication year of the book: "))
     except ValueError:
-        print("Year must be a number")
+        print(border("Year must be a number"))
         return
 
 
@@ -397,7 +397,7 @@ def issue_book():
     elif issued_book["issue_until"] < date():
         renew = input("Renew issuance? y/N: ")
         if renew not in "yY":
-            print("Aborted")
+            print(border("Aborted"))
             return
 
         cursor.execute(
@@ -426,7 +426,7 @@ def issue_book():
             f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: "
         )
         if renew not in "yY":
-            print("Aborted")
+            print(border("Aborted"))
             return
 
         cursor.execute(
