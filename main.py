@@ -421,6 +421,7 @@ def view_issued_books():
         issue_dict = {}
 
         book = get_from_table(BOOKS, issue["book_id"])[0]
+        issue_dict["Issue ID"] = issue["issue_id"]
         issue_dict["Book ID"] = book["id"]
         issue_dict["Book Name"] = book["name"]
 
@@ -503,8 +504,8 @@ def issue_book():
         print(
             # This string is split into two halves to reduce the no. of characters in the line
             (
-                f"Book {book['name']} (#{book_id}) is already issued"
-                f" to {member['name']} (#{member_id}) for {remaining} more day(s)"
+                f"Book '{book['name']}' (#{book_id}) is already issued"
+                f" to '{member['name']}' (#{member_id}) for {remaining} more day(s)"
             )
         )
         renew = input(f"Increase issuance period by {REINSTATEMENT_DAYS} days? y/N: ")
@@ -525,8 +526,8 @@ def issue_book():
         border(
             # This string is split into two halves to reduce the no. of characters in the line
             (
-                f"Issued book {book['name']} (#{book_id})"
-                f" to {member['name']} (#{member_id}) for + {REINSTATEMENT_DAYS} day(s)"
+                f"Issued book '{book['name']}' (#{book_id})"
+                f" to '{member['name']}' (#{member_id}) for + {REINSTATEMENT_DAYS} day(s)"
             )
         )
     )
