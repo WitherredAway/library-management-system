@@ -252,36 +252,26 @@ def get_issued_books(member_id):
 
 
 # Functions for the main loop
-## Functions for the Members menu
-def search(table, *cols):
-    search = input(f"Please input search string (will match {', '.join(cols)}): ")
+def search(table, col):
+    search = input(f"Please input search string (will match {col}): ")
     if not search:
         print("Search string empty, showing all records")
 
     # Get all records where the specified cols match the search string
     cursor.execute(
         f"""SELECT * FROM {table}
-        WHERE {' OR '.join([f'{col} LIKE %s' for col in cols])}""",
-        [f"%{search}%" for _ in cols],
+        WHERE {col} LIKE %s
+        ORDER BY LOCATE(%s, {col})""",
+        (f"%{search}%", search),  # order by string location
     )
     data = cursor.fetchall()
-    # Sorts the data by location of
-    # searched string in each name
-    data.sort(key=lambda d: max([str(d[col]).find(search) for col in cols]))
     if not data:
-        return print(border("No results found"))
+        return print(border("No records found"))
 
     print(tabulate(data))
 
 
-def search_members():
-    search(MEMBERS, "name")
-
-
-def search_books():
-    search(BOOKS, "name", "author", "year")
-
-
+## Functions for the Members menu
 def view_member():
     member_id, m = input_member()
     if not m:
@@ -497,7 +487,7 @@ MENUS = {
         ("Issues", "issues"),
     ],
     "members": [
-        ("Search Members", search_members),
+        ("Search Members", search, (MEMBERS, "name")),
         ("View Member Details", view_member),
         ("Add Member", add_member),
         # ("Edit Member Details", edit_member),
@@ -505,7 +495,7 @@ MENUS = {
     ],
     "books": [
         ("View Inventory", view_inventory),
-        ("Search Books", search_books),
+        ("Search Books", "search books"),
         ("View Book Details", view_book),
         ("Add Book", add_book),
         # ("Edit Book Details", edit_book),
@@ -517,6 +507,11 @@ MENUS = {
         # ("Edit Issue Details", edit_issue),
         # ("Un-Issue", un_issue),
     ],
+    "search books": [
+        ("Search Name", search, (BOOKS, "name")),
+        ("Search Author", search, (BOOKS, "author")),
+        ("Search Release Year", search, (BOOKS, "year"))
+    ]
 }
 
 _menu = MAINMENU  # This variable keeps track of which menu we're at
@@ -556,7 +551,7 @@ show_current_menu()
 while True:
     current_menu = menu()
     option = input(
-        f"""Please select menu option
+        f"""Please select '{_menu.title()}' menu option
 1-{len(current_menu)} or ENTER to show options
 >>> """
     )
@@ -570,7 +565,7 @@ while True:
         continue
     else:
         try:
-            desc, action = current_menu[int(option) - 1]
+            desc, *action = current_menu[int(option) - 1]
         except ValueError:
             # Show menu if non-integer input
             # Allows entering empty input to
@@ -582,11 +577,13 @@ while True:
             print(border("Selected option is out of range."))
             continue
 
-    if isinstance(action, str):
+    if isinstance(action[0], str):
         # If action is string, select the menu corresponding to that string
-        set_menu(action)
+        set_menu(action[0])
         continue
     else:
         # Else, call the corresponding function
+        # using 3rd element as args
         # since it can only be str or function
-        action()
+        func, args = action
+        func(*args)
