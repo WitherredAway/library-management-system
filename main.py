@@ -616,7 +616,7 @@ def show_current_menu(indent="    "):
     text = f"""{_menu.title() + " Menu":^{len(MBORDER)}}
 {BORDER}
 {options}"""
-    print(f"\033[33;1m{MBORDER}\n{text}\n{MBORDER}\033[0m")
+    print(f"{MBORDER}\n{text}\n{MBORDER}")
 
 
 def set_menu(menu):
@@ -633,11 +633,10 @@ show_current_menu()
 while True:
     current_menu = menu()
     option = input(
-        f"""\033[34mPlease select '{_menu.title()}' menu option:
+        f"""Please select '{_menu.title()}' menu option:
 1-{len(current_menu)} or ENTER to show options
->>>\033[36m """
+>>> """
     )
-    print("\033[32m")
     if option.lower() == EXIT_KEY:
         # Exit the program if exit key chosen
         con.close()
