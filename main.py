@@ -1,6 +1,7 @@
 import datetime
 
 import mysql.connector as mcon
+from mysql.connector import ProgrammingError
 
 
 BORDER = "-" * 40
@@ -10,8 +11,17 @@ FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
 
-con = mcon.connect(host="localhost", user="root", passwd="root")
-# The dictionary kwarg ensures all output is a dictionary of col: value
+try:
+    con = mcon.connect(
+        host="localhost",
+        user=input("Input the username for MySQL: "),
+        passwd=input("Input the password for MySQL: "),
+    )
+except ProgrammingError:
+    print("Invalid username or password!")
+    quit()
+
+# The dictionary kwarg ensures that output is a dictionary of col: value pairs
 cursor = con.cursor(dictionary=True)
 
 # Name of the database
