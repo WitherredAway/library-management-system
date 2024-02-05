@@ -80,7 +80,8 @@ def border(string):
 
 
 def date(date=None):
-    """This function returns the current date and time in IST timezone"""
+    """This function returns the current date and time in local timezone"""
+
     if date is None:
         return datetime.date.today()
     elif isinstance(date, str):
@@ -214,7 +215,7 @@ def get_from_table(table, _id=None, *, primary="id", n=None):
 
 
 def print_table(table, *, n=None):
-    """Function to print all members in the database"""
+    """Function to print all entries in a table"""
 
     table = get_from_table(table, n=n)
     print(tabulate(table))
@@ -632,7 +633,7 @@ def show_current_menu(indent="    "):
 
 
 def set_menu(menu):
-    """Sets current menu"""
+    """Sets current menu and shows it"""
 
     global _menu
     _menu = menu
