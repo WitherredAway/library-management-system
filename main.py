@@ -10,19 +10,21 @@ FINE_PER_DAY = 10  # Fine amount per day in rupees
 REINSTATEMENT_DAYS = 28  # No. of days to issue books for
 
 
-# Make sure to create the 'library' database
 con = mcon.connect(host="localhost", user="root", passwd="root")
 # The dictionary kwarg ensures all output is a dictionary of col: value
 cursor = con.cursor(dictionary=True)
+
+# Name of the database
+DATABASE = "souvic_library"
 
 # Names of the tables
 MEMBERS = "members"
 BOOKS = "books"
 ISSUED_BOOKS = "issued_books"
 
-# Initialize the database
-cursor.execute("CREATE DATABASE IF NOT EXISTS library")
-cursor.execute("USE library")
+# Initialize the database and tables
+cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DATABASE}")
+cursor.execute(f"USE {DATABASE}")
 
 cursor.execute(
     f"""CREATE TABLE IF NOT EXISTS {MEMBERS} (
